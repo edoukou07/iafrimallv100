@@ -1,3 +1,5 @@
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.8FsGYG2IrFUN8olrsdqDwdzrqJHivOQwPgyK2RMaIqI
+
 # Image Search API - CLIP + Qdrant
 
 API de recherche par image alimentée par CLIP (Contrastive Language-Image Pre-training) et Qdrant pour une recherche vectorielle ultra-rapide.
