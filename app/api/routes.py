@@ -41,6 +41,16 @@ class SearchResponse(BaseModel):
     count: int
 
 
+class EmbedRequest(BaseModel):
+    text: str
+
+
+class EmbedResponse(BaseModel):
+    text: str
+    embedding: List[float]
+    dimension: int
+
+
 # Services
 embedding_service = get_embedding_service()
 image_embedding_service = get_image_embedding_service()
@@ -117,17 +127,17 @@ async def search(request: SearchRequest):
         logger.error(f"Search error: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
-@router.post("/embed")
-async def get_embedding(text: str = Form(...)):
+@router.post("/embed", response_model=EmbedResponse)
+async def get_embedding(request: EmbedRequest):
     """Get TF-IDF embedding vector for text."""
     try:
-        if not text or len(text.strip()) == 0:
+        if not request.text or len(request.text.strip()) == 0:
             raise HTTPException(status_code=400, detail="Text cannot be empty")
         
-        embedding = embedding_service.embed(text)
+        embedding = embedding_service.embed(request.text)
         
         return {
-            "text": text,
+            "text": request.text,
             "embedding": embedding,
             "dimension": len(embedding)
         }

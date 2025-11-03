@@ -31,7 +31,8 @@ class LightweightEmbeddingService:
     @staticmethod
     def _get_redis():
         """Get Redis connection (cached)."""
-        from app.config import settings
+        from app.config import get_settings
+        settings = get_settings()
         if LightweightEmbeddingService._redis_client is None:
             try:
                 LightweightEmbeddingService._redis_client = redis.Redis(
