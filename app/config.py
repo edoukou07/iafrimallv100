@@ -12,13 +12,13 @@ class Settings(BaseSettings):
     api_description: str = "CLIP-powered image search for e-commerce"
     
     # Qdrant
-    qdrant_host: str = "localhost"
+    qdrant_host: str = "qdrant"
     qdrant_port: int = 6333
     qdrant_api_key: str = "your-api-key-here"
     qdrant_collection_name: str = "products"
     
     # Redis
-    redis_host: str = "localhost"
+    redis_host: str = "redis"
     redis_port: int = 6379
     redis_password: str = ""
     
