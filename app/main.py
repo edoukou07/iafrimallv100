@@ -74,12 +74,21 @@ async def root():
 @app.get("/test")
 async def test_page():
     """Serve the test panel"""
-    test_file = Path(__file__).parent.parent / "static" / "test.html"
-    if test_file.exists():
-        return FileResponse(str(test_file), media_type="text/html")
+    # Try multiple locations
+    test_files = [
+        Path(__file__).parent.parent / "static" / "test_panel.html",
+        Path(__file__).parent.parent / "static" / "test.html",
+        Path(__file__).parent / "static" / "test_panel.html",
+    ]
+    
+    for test_file in test_files:
+        if test_file.exists():
+            logger.info(f"Serving test panel from: {test_file}")
+            return FileResponse(str(test_file), media_type="text/html")
+    
     return {
         "error": "Test page not found",
-        "message": "Place test.html in the static directory"
+        "message": f"Place test_panel.html in the static directory. Checked: {[str(f) for f in test_files]}"
     }
 
 @app.exception_handler(Exception)

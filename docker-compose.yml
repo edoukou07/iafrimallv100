@@ -29,12 +29,6 @@ services:
       - QDRANT_API_KEY=qdrant-api-key
     networks:
       - image-search-net
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
     restart: unless-stopped
 
   api:
