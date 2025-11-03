@@ -158,7 +158,7 @@ class IntegratedQdrantService:
                 "name": self._collection_name,
                 "points_count": collection_info.points_count,
                 "vectors_count": collection_info.vectors_count,
-                "segment_count": len(collection_info.config.params) if hasattr(collection_info.config, 'params') else 0
+                "segment_count": getattr(collection_info, 'segments_count', 0)
             }
         except Exception as e:
             logger.error(f"Failed to get collection stats: {e}")
