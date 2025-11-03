@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     redis_password: str = ""
     
     # Model
-    model_name: str = "openai/CLIP-ViT-B-32"
+    model_name: str = "sentence-transformers/clip-ViT-B-32"
     embedding_dim: int = 512
     top_k: int = 10
     
