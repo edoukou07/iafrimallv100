@@ -65,7 +65,7 @@ class AsyncImageIndexerWorker:
             task_timeout: Task execution timeout in seconds
         """
         if aioredis is None:
-            raise ImportError("aioredis is required. Install with: pip install aioredis")
+            raise ImportError("redis is required. Install with: pip install redis")
             
         self.redis_url = redis_url
         self.worker_id = worker_id
