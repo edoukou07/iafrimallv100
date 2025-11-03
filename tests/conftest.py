@@ -18,7 +18,7 @@ def test_config():
         "QDRANT_PORT": 6333,
         "REDIS_HOST": "localhost",
         "REDIS_PORT": 6379,
-        "MODEL_NAME": "openai/CLIP-ViT-B-32",
+        "MODEL_NAME": "openai/clip-vit-base-patch32",
     }
 
 @pytest.fixture

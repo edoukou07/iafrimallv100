@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class EmbeddingService:
     """Service for generating CLIP embeddings from images and text"""
     
-    def __init__(self, model_name: str = "sentence-transformers/clip-ViT-B-32"):
+    def __init__(self, model_name: str = "openai/clip-vit-base-patch32"):
         """Initialize CLIP model and processor"""
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
