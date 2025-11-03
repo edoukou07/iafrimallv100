@@ -63,6 +63,21 @@ class IndexJob:
         # Don't serialize bytes (send path only)
         d['image_bytes'] = None
         return d
+    
+    def save_image_temp(self) -> str:
+        """Save image bytes to temporary file and return path."""
+        if not self.image_bytes:
+            raise ValueError("No image data to save")
+        
+        import tempfile
+        # Create temp file with .jpg extension
+        fd, path = tempfile.mkstemp(suffix='.jpg')
+        try:
+            os.write(fd, self.image_bytes)
+            self.image_path = path
+            return path
+        finally:
+            os.close(fd)
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'IndexJob':

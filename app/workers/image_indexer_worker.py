@@ -107,27 +107,97 @@ class AsyncImageIndexerWorker:
     )
     async def _process_image_task(self, task: Dict[str, Any]) -> bool:
         """
-        Process an image indexing task with retry logic.
+        Process an image indexing task with CLIP embedding and Qdrant indexing.
         
         Args:
-            task: Task data dictionary
+            task: Task data dictionary with:
+                - product_id: Product ID
+                - image_path: Path to image file
+                - name: Product name
+                - description: Product description
+                - metadata: Product metadata
             
         Returns:
             True if successful, False otherwise
         """
         task_id = task.get("task_id", "unknown")
+        product_id = task.get("product_id", "unknown")
+        
         try:
-            logger.debug(f"Processing task {task_id}")
+            logger.debug(f"Processing task {task_id}: product {product_id}")
             
-            # Simulate image processing (replace with actual logic)
-            await asyncio.sleep(0.1)
+            # Get image path
+            image_path = task.get("image_path")
+            if not image_path:
+                logger.error(f"Task {task_id}: Missing image_path")
+                return False
             
-            logger.info(f"✓ Task {task_id} processed successfully")
-            return True
+            # Load image from disk
+            try:
+                with open(image_path, 'rb') as f:
+                    image_data = f.read()
+            except Exception as e:
+                logger.error(f"Task {task_id}: Failed to read image: {e}")
+                return False
+            
+            # Step 1: Generate CLIP image embedding
+            logger.debug(f"Task {task_id}: Generating CLIP embedding")
+            try:
+                from app.services.image_embedding import get_image_embedding_service
+                image_service = get_image_embedding_service()
+                embedding = image_service.embed_image(image_data)
+                
+                if not embedding or len(embedding) == 0:
+                    logger.error(f"Task {task_id}: Failed to generate embedding")
+                    return False
+                
+                logger.debug(f"Task {task_id}: Embedding generated ({len(embedding)} dims)")
+            
+            except Exception as e:
+                logger.error(f"Task {task_id}: Embedding error: {e}")
+                return False
+            
+            # Step 2: Index in Qdrant
+            logger.debug(f"Task {task_id}: Indexing in Qdrant")
+            try:
+                from app.services.integrated_qdrant import get_qdrant_service
+                qdrant = get_qdrant_service()
+                
+                metadata = task.get("metadata", {})
+                metadata["has_image"] = True
+                metadata["indexed_at"] = datetime.now().isoformat()
+                
+                success = qdrant.index_product(
+                    product_id=product_id,
+                    product_name=task.get("name", ""),
+                    embedding=embedding,
+                    metadata=metadata
+                )
+                
+                if not success:
+                    logger.error(f"Task {task_id}: Qdrant indexing failed")
+                    return False
+                
+                logger.info(f"✓ Task {task_id}: Product {product_id} indexed successfully")
+                return True
+            
+            except Exception as e:
+                logger.error(f"Task {task_id}: Qdrant error: {e}")
+                return False
             
         except Exception as e:
-            logger.error(f"✗ Error processing task {task_id}: {e}")
-            raise
+            logger.error(f"✗ Task {task_id}: Unexpected error: {e}", exc_info=True)
+            return False
+        
+        finally:
+            # Clean up image file
+            try:
+                image_path = task.get("image_path")
+                if image_path and os.path.exists(image_path):
+                    os.remove(image_path)
+                    logger.debug(f"Task {task_id}: Cleaned up temporary image")
+            except Exception as e:
+                logger.warning(f"Task {task_id}: Failed to clean up image: {e}")
 
     async def process_task(self, task: Dict[str, Any]) -> bool:
         """

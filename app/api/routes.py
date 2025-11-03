@@ -331,7 +331,7 @@ async def index_product_with_image(
         
         # Read image bytes
         image_data = await image_file.read()
-        logger.info(f"Enqueuing product {product_id} for image indexing")
+        logger.info(f"Enqueuing product {product_id} for image indexing ({len(image_data)} bytes)")
         
         # Parse metadata
         try:
@@ -349,6 +349,14 @@ async def index_product_with_image(
             description=description,
             metadata=metadata_dict
         )
+        
+        # Save image to temporary file
+        try:
+            image_path = job.save_image_temp()
+            logger.debug(f"Image saved to temporary file: {image_path}")
+        except Exception as e:
+            logger.error(f"Failed to save image: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
         
         # Enqueue to Redis
         queue_service = get_redis_queue_service()
