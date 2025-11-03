@@ -20,7 +20,16 @@ class QdrantService:
         logger.info(f"Connecting to Qdrant at {host}:{port}")
         
         try:
-            self.client = QdrantClient(host=host, port=port, api_key=api_key, timeout=5.0)
+            # Use HTTP (not HTTPS) for Docker service communication
+            # Docker Compose services communicate via HTTP by default
+            self.client = QdrantClient(
+                host=host, 
+                port=port, 
+                api_key=api_key, 
+                timeout=5.0,
+                prefer_grpc=False,  # Use HTTP instead of gRPC
+                https=False  # Explicitly disable HTTPS/SSL
+            )
             self._initialize_collection()
             self._initialized = True
             logger.info(f"Connected to Qdrant successfully")
@@ -34,7 +43,13 @@ class QdrantService:
             return
         
         try:
-            self.client = QdrantClient(host=self.host, port=self.port, timeout=5.0)
+            self.client = QdrantClient(
+                host=self.host, 
+                port=self.port, 
+                timeout=5.0,
+                prefer_grpc=False,  # Use HTTP instead of gRPC
+                https=False  # Explicitly disable HTTPS/SSL
+            )
             self._initialize_collection()
             self._initialized = True
             logger.info(f"Successfully connected to Qdrant")

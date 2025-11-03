@@ -39,7 +39,7 @@ class LightweightEmbeddingService:
                     host=settings.redis_host,
                     port=int(settings.redis_port),
                     password=settings.redis_password,
-                    ssl=True,
+                    ssl=False,  # Disable SSL for Docker Compose communication
                     decode_responses=False
                 )
                 LightweightEmbeddingService._redis_client.ping()
