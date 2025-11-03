@@ -78,7 +78,7 @@ class EmbeddingService:
             raise
     
     def embed_text(self, text: str) -> List[float]:
-        """Generate embedding for text"""
+        """Generate embedding for text (max 77 tokens for CLIP)"""
         if self.model is None:
             # Return mock embedding for development
             import hashlib
@@ -87,7 +87,14 @@ class EmbeddingService:
         
         try:
             with torch.no_grad():
-                inputs = self.processor(text=text, return_tensors="pt", padding=True)
+                # CLIP has max 77 tokens - truncate and pad
+                inputs = self.processor(
+                    text=text, 
+                    return_tensors="pt", 
+                    padding=True,
+                    truncation=True,
+                    max_length=77
+                )
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
                 text_features = self.model.get_text_features(**inputs)
