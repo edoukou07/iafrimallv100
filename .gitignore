@@ -2,6 +2,7 @@ example_products.json
 uploads/
 qdrant_storage/
 redis_data/
+docs/
 venv/
 .venv/
 __pycache__/
