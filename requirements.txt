@@ -34,7 +34,7 @@ aiohttp==3.9.1
 httpx==0.25.2
 python-dotenv==1.0.0
 tenacity==8.2.3
-aioredis==2.0.1
+redis==5.0.1
 
 # Image Processing
 pillow==10.1.0

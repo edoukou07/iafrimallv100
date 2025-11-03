@@ -28,7 +28,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 try:
-    import aioredis
+    import redis
+    import redis.asyncio as aioredis
 except ImportError:
     aioredis = None
 
