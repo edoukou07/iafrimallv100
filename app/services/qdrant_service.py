@@ -14,16 +14,39 @@ class QdrantService:
         self.port = port
         self.collection_name = collection_name
         self.vector_size = vector_size
+        self.client = None
+        self._initialized = False
         
         logger.info(f"Connecting to Qdrant at {host}:{port}")
         
-        self.client = QdrantClient(host=host, port=port, api_key=api_key)
-        self._initialize_collection()
+        try:
+            self.client = QdrantClient(host=host, port=port, api_key=api_key, timeout=5.0)
+            self._initialize_collection()
+            self._initialized = True
+            logger.info(f"Connected to Qdrant successfully")
+        except Exception as e:
+            logger.warning(f"Could not connect to Qdrant at startup: {e}. Will retry on first request.")
+            # Don't raise - allow app to start, will retry on first request
+    
+    def _ensure_connected(self):
+        """Ensure connection to Qdrant (retry logic)"""
+        if self._initialized:
+            return
         
-        logger.info(f"Connected to Qdrant successfully")
+        try:
+            self.client = QdrantClient(host=self.host, port=self.port, timeout=5.0)
+            self._initialize_collection()
+            self._initialized = True
+            logger.info(f"Successfully connected to Qdrant")
+        except Exception as e:
+            logger.error(f"Failed to connect to Qdrant: {e}")
+            raise
     
     def _initialize_collection(self):
         """Initialize collection if it doesn't exist"""
+        if not self.client:
+            raise Exception("Qdrant client not initialized")
+        
         try:
             # Check if collection exists
             collections = self.client.get_collections()
@@ -94,6 +117,8 @@ class QdrantService:
     def search(self, embedding: List[float], top_k: int = 10, 
                filters: Optional[Filter] = None) -> List[Dict[str, Any]]:
         """Search for similar products"""
+        self._ensure_connected()
+        
         try:
             results = self.client.search(
                 collection_name=self.collection_name,
