@@ -64,7 +64,7 @@ az webapp config appsettings list -g ia-image-search-rg -n image-search-api-123 
 | QDRANT_API_KEY | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... | Credentials |
 | REDIS_HOST | image-search-redis-123.redis.cache.windows.net | Azure |
 | REDIS_PORT | 6380 | Configuration |
-| REDIS_PASSWORD | ***REDACTED*** | Credentials |
+| REDIS_PASSWORD | NdKrx641xMdyO6Kt9rCtBtmcUJWxhY9cCAzCaJKUufI= | Credentials |
 | ENVIRONMENT | production | Environment |
 | WEBSITES_PORT | 8000 | FastAPI |
 | SCM_DO_BUILD_DURING_DEPLOYMENT | true | Build |
@@ -174,7 +174,7 @@ Accédez à: **https://image-search-api-123.azurewebsites.net/test**
 # Depuis votre machine locale (si redis-cli est installé)
 redis-cli -h image-search-redis-123.redis.cache.windows.net `
   -p 6380 `
-  -a "***REDACTED***" `
+  -a "NdKrx641xMdyO6Kt9rCtBtmcUJWxhY9cCAzCaJKUufI=" `
   --tls ping
 
 # Résultat attendu: PONG

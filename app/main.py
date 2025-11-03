@@ -49,10 +49,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
+# Mount static files (only if directory exists)
 static_dir = Path(__file__).parent.parent / "static"
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+try:
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+except Exception as e:
+    logger.warning(f"Could not mount static files: {e}")
 
 # Include routers
 app.include_router(router)

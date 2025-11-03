@@ -1,0 +1,115 @@
+################################################################################
+# Qdrant Configuration - RAM Optimization with Disk Storage
+# 
+# This configuration tells Qdrant to:
+# 1. Store vectors primarily on disk (not in RAM)
+# 2. Keep only a hot cache in RAM for frequently accessed data
+# 3. Use memory-mapped files for efficient access
+# 4. Implement smart prefetching to balance performance and memory
+################################################################################
+
+# Storage settings
+storage:
+  # Snapshots directory for backup/restore
+  snapshots_path: "./snapshots"
+  
+  # Write-ahead log for durability
+  wal:
+    enabled: true
+    wal_capacity_mb: 100  # Max size of WAL before flush
+
+# Vector storage optimization (CRITICAL FOR RAM MANAGEMENT)
+vector_storage:
+  # Use disk-based storage for vectors instead of RAM
+  on_disk: true
+  
+  # Cache configuration - only hot vectors in RAM
+  cache:
+    # Enable LRU cache for frequently accessed vectors
+    enabled: true
+    
+    # Max cache size in MB (adjust based on available RAM)
+    # Example: 256MB cache = faster queries on recent/frequent vectors
+    max_cache_size_mb: 256
+    
+    # Cache lifespan: vectors unused for N seconds are evicted from cache
+    cache_lifespan_seconds: 3600  # 1 hour
+    
+    # Prefetch strategy: load neighboring vectors for batch operations
+    prefetch_enabled: true
+    prefetch_batch_size: 100
+
+# Payload storage optimization
+payload_storage:
+  # Store payloads (metadata) on disk with cache
+  on_disk: true
+  
+  # Memory map for efficient access without full RAM load
+  use_memmap: true
+
+# Indexing configuration
+indexing:
+  # Type of index for fast searches
+  payload_index_type: "indexed"  # Index frequently searched fields
+  
+  # Hnsw (Hierarchical Navigable Small World) optimization
+  hnsw:
+    # Maximum connections per point (lower = less RAM, slower searches)
+    max_connections: 32
+    
+    # Encoding mode: use byte-sized vectors to save 4x RAM
+    encoding: byte
+    
+    # Skip index for faster traversal
+    ef_construct: 200  # Construction parameter
+    ef_search: 100     # Search parameter (lower = faster but less accurate)
+
+# Memory management (CRITICAL SETTINGS)
+memory_management:
+  # Total memory limit in MB
+  # If exceeded, older segments are moved to disk
+  memory_limit_mb: 1024  # 1GB limit (adjust for your container)
+  
+  # Segment merging to optimize storage
+  merge_threshold_mb: 256
+  
+  # Enable memory pressure handling
+  pressure_on_memory: true
+  
+  # Metrics collection (for monitoring)
+  collect_metrics: true
+
+# Performance vs Memory tradeoff
+performance:
+  # Number of indexing threads (lower = less RAM/CPU usage)
+  indexing_threads: 2
+  
+  # Disable expensive operations to save memory
+  disable_optimizer: false
+
+# Disk I/O optimization
+io_optimization:
+  # Read-ahead cache for sequential reads
+  read_cache_mb: 128
+  
+  # Use direct I/O to bypass OS cache when possible
+  use_direct_io: false
+
+# Monitoring and optimization
+optimization:
+  # Auto-optimize segments when idle
+  auto_optimize: true
+  
+  # Optimization interval in seconds
+  optimization_interval_sec: 3600  # Run every hour
+  
+  # Target segment size (merge smaller ones)
+  target_segment_size_mb: 64
+
+# Cluster/Replication settings (for future scaling)
+replication:
+  # Replication factor (1 = single instance, no replication)
+  replication_factor: 1
+  
+  # Consistency level for reads
+  read_consistency_factor: 1

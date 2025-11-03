@@ -1,0 +1,20 @@
+# Redis Async Worker Requirements
+# Install with: pip install -r requirements-async-worker.txt
+
+# Async Redis client
+aioredis>=2.0.0,<3.0.0
+
+# HTTP client for testing
+httpx>=0.23.0
+
+# Retry logic
+tenacity>=8.2.0
+
+# FastAPI dependencies (should already be in requirements.txt)
+# fastapi>=0.95.0
+# uvicorn>=0.20.0
+# pydantic>=1.10.0
+
+# Optional but recommended
+# prometheus-client>=0.16.0  # For metrics
+# redis>=4.5.0  # Alternative to aioredis if needed
