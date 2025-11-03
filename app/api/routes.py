@@ -13,7 +13,7 @@ import json
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from typing import Optional, List
 from pydantic import BaseModel
-from app.services.ultra_light_embedding import get_embedding_service
+from app.services.embedding_service import EmbeddingService
 from app.services.image_embedding import get_image_embedding_service
 from app.services.integrated_qdrant import get_qdrant_service
 from app.services.qdrant_monitoring import QdrantMonitor
@@ -52,7 +52,7 @@ class EmbedResponse(BaseModel):
 
 
 # Services
-embedding_service = get_embedding_service()
+embedding_service = EmbeddingService()
 image_embedding_service = get_image_embedding_service()
 qdrant_service = get_qdrant_service()
 
@@ -100,8 +100,8 @@ async def search(request: SearchRequest):
         
         logger.info(f"Searching for: {request.query}")
         
-        # Generate TF-IDF embedding
-        embedding = embedding_service.embed(request.query)
+        # Generate CLIP text embedding
+        embedding = embedding_service.embed_text(request.query)
         
         if not embedding:
             raise HTTPException(status_code=500, detail="Failed to generate embedding")
@@ -129,12 +129,12 @@ async def search(request: SearchRequest):
 
 @router.post("/embed", response_model=EmbedResponse)
 async def get_embedding(request: EmbedRequest):
-    """Get TF-IDF embedding vector for text."""
+    """Get CLIP text embedding vector."""
     try:
         if not request.text or len(request.text.strip()) == 0:
             raise HTTPException(status_code=400, detail="Text cannot be empty")
         
-        embedding = embedding_service.embed(request.text)
+        embedding = embedding_service.embed_text(request.text)
         
         return {
             "text": request.text,
@@ -191,12 +191,12 @@ async def index_product(
 ):
     """
     Index a product for searching.
-    Generates TF-IDF embedding and stores in Qdrant.
+    Generates CLIP text embedding and stores in Qdrant.
     """
     try:
         # Generate embedding for full text
         full_text = f"{name} {description}"
-        embedding = embedding_service.embed(full_text)
+        embedding = embedding_service.embed_text(full_text)
         
         if not embedding:
             raise HTTPException(status_code=500, detail="Failed to generate embedding")

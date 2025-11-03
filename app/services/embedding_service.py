@@ -108,3 +108,7 @@ class EmbeddingService:
         """Generate embedding from image file"""
         image = self.get_image_from_file(image_path)
         return self.embed_image(image)
+    
+    def get_dimension(self) -> int:
+        """Return the dimension of embeddings (512 for CLIP)"""
+        return 512

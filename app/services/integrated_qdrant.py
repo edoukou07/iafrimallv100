@@ -80,7 +80,7 @@ class IntegratedQdrantService:
                 self._client.create_collection(
                     collection_name=self._collection_name,
                     vectors_config=VectorParams(
-                        size=500,  # Dimension for TF-IDF vectors
+                        size=512,  # CLIP vector dimension (openai/clip-vit-base-patch32)
                         distance=Distance.COSINE
                     )
                 )
