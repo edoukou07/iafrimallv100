@@ -28,6 +28,17 @@ env/
 .dockerignore
 .pytest_cache/
 .coverage
+# Documentation
+*.md
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+# Test files
+tests/
+pytest.ini
+postman_collection.json
 htmlcov/
 *.log
 .DS_Store

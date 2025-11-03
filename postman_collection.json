@@ -1,0 +1,329 @@
+{
+  "info": {
+    "_postman_id": "image-search-api-test-collection",
+    "name": "Image Search API - Testing",
+    "description": "Complete test collection for Image Search API with CLIP + Qdrant",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "🏥 Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Verify the health status of all services (Qdrant, Redis, CLIP model)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Collection Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/collections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "collections"]
+            },
+            "description": "Get information about Qdrant collections"
+          },
+          "response": []
+        },
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Get API information and available endpoints"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔍 Search Operations",
+      "item": [
+        {
+          "name": "Search by Image URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://via.placeholder.com/500?text=Product+Image\",\n  \"top_k\": 10,\n  \"category_filter\": null,\n  \"price_min\": null,\n  \"price_max\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "search"]
+            },
+            "description": "Search for similar products using an image URL"
+          },
+          "response": []
+        },
+        {
+          "name": "Search by Text Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text_query\": \"red cotton shirt\",\n  \"top_k\": 10,\n  \"category_filter\": \"clothing\",\n  \"price_min\": 10,\n  \"price_max\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "search"]
+            },
+            "description": "Search for products using a text query description"
+          },
+          "response": []
+        },
+        {
+          "name": "Search by Image - With Filters",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://via.placeholder.com/500?text=Electronics\",\n  \"top_k\": 5,\n  \"category_filter\": \"electronics\",\n  \"price_min\": 100,\n  \"price_max\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "search"]
+            },
+            "description": "Search with category and price filters applied"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Top-K Results",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text_query\": \"blue jeans\",\n  \"top_k\": 50,\n  \"category_filter\": null,\n  \"price_min\": null,\n  \"price_max\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "search"]
+            },
+            "description": "Get top 50 results instead of default 10"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "➕ Index Products",
+      "item": [
+        {
+          "name": "Index Product - Basic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"prod_001\",\n  \"name\": \"Red Cotton Shirt\",\n  \"description\": \"Beautiful red cotton shirt perfect for casual wear\",\n  \"image_url\": \"https://via.placeholder.com/500?text=Red+Shirt\",\n  \"category\": \"clothing\",\n  \"price\": 29.99,\n  \"attributes\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/index-product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "index-product"]
+            },
+            "description": "Index a new product with basic information"
+          },
+          "response": []
+        },
+        {
+          "name": "Index Product - With Attributes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"prod_002\",\n  \"name\": \"Blue Denim Jeans\",\n  \"description\": \"Classic blue denim jeans with stretch fabric\",\n  \"image_url\": \"https://via.placeholder.com/500?text=Blue+Jeans\",\n  \"category\": \"clothing\",\n  \"price\": 59.99,\n  \"attributes\": {\n    \"color\": \"blue\",\n    \"size\": \"M\",\n    \"material\": \"cotton-blend\",\n    \"fit\": \"slim\",\n    \"inseam\": \"32\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/index-product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "index-product"]
+            },
+            "description": "Index a product with detailed attributes"
+          },
+          "response": []
+        },
+        {
+          "name": "Index Product - Electronics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"prod_003\",\n  \"name\": \"Wireless Headphones\",\n  \"description\": \"Premium noise-cancelling wireless headphones with 30-hour battery\",\n  \"image_url\": \"https://via.placeholder.com/500?text=Headphones\",\n  \"category\": \"electronics\",\n  \"price\": 199.99,\n  \"attributes\": {\n    \"brand\": \"PremiumAudio\",\n    \"battery_hours\": 30,\n    \"noise_cancellation\": true,\n    \"bluetooth_version\": \"5.0\",\n    \"color\": \"black\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/index-product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "index-product"]
+            },
+            "description": "Index an electronics product"
+          },
+          "response": []
+        },
+        {
+          "name": "Index Product - Batch Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"prod_{{$timestamp}}\",\n  \"name\": \"Test Product {{$randomInt}}\",\n  \"description\": \"This is a test product created at {{$timestamp}}\",\n  \"image_url\": \"https://via.placeholder.com/500?text=Test+Product\",\n  \"category\": \"test\",\n  \"price\": {{$randomInt}},\n  \"attributes\": {\n    \"created_at\": \"{{$timestamp}}\",\n    \"random_id\": \"{{$randomInt}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/index-product",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "index-product"]
+            },
+            "description": "Index a product using Postman dynamic variables for batch testing"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Performance Tests",
+      "item": [
+        {
+          "name": "Bulk Index - 10 Products",
+          "item": [
+            {
+              "name": "Index Product 1",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"bulk_1\",\n  \"name\": \"Product 1\",\n  \"description\": \"Test product 1\",\n  \"image_url\": \"https://via.placeholder.com/500?text=Product+1\",\n  \"category\": \"test\",\n  \"price\": 10.00\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/index-product",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "index-product"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Stress Test - Multiple Searches",
+          "item": [
+            {
+              "name": "Search 1",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"text_query\": \"shirt\",\n  \"top_k\": 10\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/search",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "search"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "API base URL - change to Azure URL after deployment"
+    }
+  ]
+}

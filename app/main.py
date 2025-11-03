@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from app.config import get_settings
 from app.api.routes import router
 from app.dependencies import initialize_services
@@ -47,6 +49,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+static_dir = Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 # Include routers
 app.include_router(router)
 
@@ -57,7 +64,19 @@ async def root():
         "title": settings.api_title,
         "version": settings.api_version,
         "description": settings.api_description,
-        "docs": "/docs"
+        "docs": "/docs",
+        "test": "/test"
+    }
+
+@app.get("/test")
+async def test_page():
+    """Serve the test panel"""
+    test_file = Path(__file__).parent.parent / "static" / "test.html"
+    if test_file.exists():
+        return FileResponse(str(test_file), media_type="text/html")
+    return {
+        "error": "Test page not found",
+        "message": "Place test.html in the static directory"
     }
 
 @app.exception_handler(Exception)

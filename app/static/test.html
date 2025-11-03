@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Search API - Test Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        .dot.online {
+            background: #28a745;
+        }
+
+        .dot.offline {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="url"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="url"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .response-container {
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .response-box {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .response-success {
+            border-left-color: #28a745;
+            background: #f0f9f4;
+        }
+
+        .response-error {
+            border-left-color: #dc3545;
+            background: #fdf8f8;
+            color: #721c24;
+        }
+
+        .response-loading {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #e0e0e0;
+        }
+
+        .result-info {
+            padding: 12px;
+        }
+
+        .result-name {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-price {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .result-score {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .score-bar {
+            width: 60px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #856404;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #155724;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background: #f5f5f5;
+            border: 2px dashed #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+
+        .file-input-label.dragover {
+            background: #e8eef9;
+            border-color: #764ba2;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-width: 300px;
+            margin-top: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .image-preview.show {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .error-text {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .success-text {
+            color: #28a745;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span>🔍</span>
+                Image Search API - Test Panel
+                <span id="statusBadge" class="status-indicator status-offline">
+                    <span class="dot offline"></span>
+                    Vérification...
+                </span>
+            </h1>
+            <p style="color: #666; margin-top: 10px;">API CLIP + Qdrant pour recherche d'images e-commerce</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Panel 1: Search by Image -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span class="icon">🖼️</span>
+                    Recherche par Image
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="image-url">URL</button>
+                    <button class="tab" data-tab="image-upload">Upload</button>
+                </div>
+
+                <div id="image-url" class="tab-content active">
+                    <div class="form-group">
+                        <label>URL de l'image</label>
+                        <input type="url" id="searchImageUrl" placeholder="https://example.com/product.jpg">
+                    </div>
+                </div>
+
+                <div id="image-upload" class="tab-content">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="searchImageFile" accept="image/*">
+                        <label for="searchImageFile" class="file-input-label">
+                            <span>📁</span>
+                            <span>Cliquez ou glissez l'image ici</span>
+                        </label>
+                    </div>
+                    <img id="imagePreview" class="image-preview" alt="Aperçu">
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre de résultats (top_k)</label>
+                    <input type="number" id="searchTopK" value="10" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Filtre catégorie (optionnel)</label>
+                    <input type="text" id="searchCategory" placeholder="ex: clothing, electronics">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>Prix min (optionnel)</label>
+                        <input type="number" id="searchPriceMin" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Prix max (optionnel)</label>
+                        <input type="number" id="searchPriceMax" placeholder="1000" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="searchByImage()">
+                        🔍 Rechercher
+                    </button>
+                    <button class="btn-secondary" onclick="clearSearchImage()">Réinitialiser</button>
+                </div>
+
+                <div id="searchImageResponse" class="response-container"></div>
+            </div>
+
+            <!-- Panel 2: Search by Text -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span class="icon">📝</span>
+                    Recherche par Texte
+                </div>
+
+                <div class="form-group">
+                    <label>Requête texte</label>
+                    <textarea id="searchText" placeholder="Décrivez le produit que vous recherchez...">red shirt</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre de résultats (top_k)</label>
+                    <input type="number" id="searchTextTopK" value="10" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Filtre catégorie (optionnel)</label>
+                    <input type="text" id="searchTextCategory" placeholder="ex: clothing, electronics">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>Prix min (optionnel)</label>
+                        <input type="number" id="searchTextPriceMin" placeholder="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Prix max (optionnel)</label>
+                        <input type="number" id="searchTextPriceMax" placeholder="1000" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="searchByText()">
+                        🔍 Rechercher
+                    </button>
+                    <button class="btn-secondary" onclick="clearSearchText()">Réinitialiser</button>
+                </div>
+
+                <div id="searchTextResponse" class="response-container"></div>
+            </div>
+
+            <!-- Panel 3: Index Product -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span class="icon">➕</span>
+                    Indexer un Produit
+                </div>
+
+                <div class="form-group">
+                    <label>ID du produit *</label>
+                    <input type="text" id="productId" placeholder="prod_001">
+                </div>
+
+                <div class="form-group">
+                    <label>Nom du produit *</label>
+                    <input type="text" id="productName" placeholder="Red Shirt">
+                </div>
+
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="productDescription" placeholder="Décrivez le produit..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>URL de l'image *</label>
+                    <input type="url" id="productImageUrl" placeholder="https://example.com/product.jpg">
+                </div>
+
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <input type="text" id="productCategory" placeholder="clothing">
+                </div>
+
+                <div class="form-group">
+                    <label>Prix *</label>
+                    <input type="number" id="productPrice" placeholder="29.99" min="0" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>Attributs (JSON optionnel)</label>
+                    <textarea id="productAttributes" placeholder='{"color": "red", "size": "M"}'></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="indexProduct()">
+                        ➕ Indexer
+                    </button>
+                    <button class="btn-secondary" onclick="clearIndexForm()">Réinitialiser</button>
+                </div>
+
+                <div id="indexResponse" class="response-container"></div>
+            </div>
+
+            <!-- Panel 4: Health & Info -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span class="icon">⚙️</span>
+                    État & Information
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="checkHealth()">
+                        🏥 Vérifier l'état
+                    </button>
+                    <button class="btn-secondary" onclick="getCollectionInfo()">ℹ️ Info collections</button>
+                </div>
+
+                <div id="healthResponse" class="response-container"></div>
+
+                <div id="statsContainer" class="stats-grid" style="display: none; margin-top: 20px;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statQdrant">-</div>
+                        <div class="stat-label">Qdrant</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statRedis">-</div>
+                        <div class="stat-label">Redis</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statModel">-</div>
+                        <div class="stat-label">Modèle CLIP</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statAPI">-</div>
+                        <div class="stat-label">API</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 5: API Configuration -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span class="icon">⚡</span>
+                    Configuration API
+                </div>
+
+                <div class="form-group">
+                    <label>URL de base de l'API</label>
+                    <input type="url" id="apiBaseUrl" value="http://localhost:8000" placeholder="http://localhost:8000">
+                    <p style="font-size: 12px; color: #999; margin-top: 8px;">
+                        Pour Azure: https://yourappname.azurewebsites.net
+                    </p>
+                </div>
+
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <span>ℹ️</span>
+                    <span>Configuration pour déploiement Azure Web App</span>
+                </div>
+
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 10px;">🔧 Endpoints disponibles:</p>
+                    <ul style="font-size: 13px; line-height: 1.8; color: #555;">
+                        <li><code style="background: white; padding: 2px 6px; border-radius: 3px;">POST /api/v1/search</code> - Rechercher</li>
+                        <li><code style="background: white; padding: 2px 6px; border-radius: 3px;">POST /api/v1/index-product</code> - Indexer</li>
+                        <li><code style="background: white; padding: 2px 6px; border-radius: 3px;">GET /api/v1/health</code> - Santé</li>
+                        <li><code style="background: white; padding: 2px 6px; border-radius: 3px;">GET /api/v1/collections</code> - Info</li>
+                        <li><code style="background: white; padding: 2px 6px; border-radius: 3px;">GET /docs</code> - Swagger UI</li>
+                    </ul>
+                </div>
+
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="saveConfiguration()">
+                        💾 Sauvegarder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel 6: Request/Response Raw -->
+            <div class="panel full-width">
+                <div class="panel-title">
+                    <span class="icon">📋</span>
+                    Requête / Réponse Brutes
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="request-raw">Dernière requête</button>
+                    <button class="tab" data-tab="response-raw">Dernière réponse</button>
+                </div>
+
+                <div id="request-raw" class="tab-content active">
+                    <div class="response-box" id="rawRequest">Cliquez sur un bouton de recherche pour voir la requête...</div>
+                </div>
+
+                <div id="response-raw" class="tab-content">
+                    <div class="response-box" id="rawResponse">La réponse apparaîtra ici...</div>
+                </div>
+
+                <div class="button-group" style="margin-top: 15px;">
+                    <button class="btn-secondary" onclick="copyToClipboard('rawRequest')">📋 Copier requête</button>
+                    <button class="btn-secondary" onclick="copyToClipboard('rawResponse')">📋 Copier réponse</button>
+                    <button class="btn-secondary" onclick="clearAll()">🗑️ Tout nettoyer</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Image Search API Test Panel v1.0 | Déployé sur Azure Web App</p>
+            <p style="margin-top: 10px; opacity: 0.7;">📝 Documentation: <a href="/docs" style="color: white; text-decoration: underline;">Swagger UI</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        let API_BASE_URL = localStorage.getItem('apiBaseUrl') || 'http://localhost:8000';
+        let lastRequest = {};
+        let lastResponse = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfiguration();
+            setupTabEvents();
+            setupFileInputEvents();
+            checkHealth();
+            setInterval(checkHealth, 30000); // Check health every 30 seconds
+        });
+
+        // Tab functionality
+        function setupTabEvents() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabId = e.target.dataset.tab;
+                    const parent = e.target.closest('.panel') || document.body;
+                    
+                    parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    e.target.classList.add('active');
+                    parent.querySelector(`#${tabId}`)?.classList.add('active');
+                });
+            });
+        }
+
+        // File input events
+        function setupFileInputEvents() {
+            const fileInput = document.getElementById('searchImageFile');
+            const fileLabel = fileInput.parentElement.querySelector('.file-input-label');
+
+            fileInput.addEventListener('change', (e) => {
+                handleImageFile(e.target.files[0]);
+            });
+
+            fileLabel.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileLabel.classList.add('dragover');
+            });
+
+            fileLabel.addEventListener('dragleave', () => {
+                fileLabel.classList.remove('dragover');
+            });
+
+            fileLabel.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileLabel.classList.remove('dragover');
+                handleImageFile(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleImageFile(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                preview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // API Call Function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            lastRequest = {
+                method: method,
+                url: url,
+                data: data
+            };
+
+            updateRawRequest();
+
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+
+                lastResponse = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: result
+                };
+
+                updateRawResponse();
+                return { success: response.ok, data: result, status: response.status };
+            } catch (error) {
+                lastResponse = {
+                    status: 'ERROR',
+                    statusText: error.message,
+                    data: null
+                };
+                updateRawResponse();
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Search by Image
+        async function searchByImage() {
+            const imageUrl = document.getElementById('searchImageUrl').value;
+            const topK = parseInt(document.getElementById('searchTopK').value) || 10;
+            const category = document.getElementById('searchCategory').value;
+            const priceMin = parseFloat(document.getElementById('searchPriceMin').value) || null;
+            const priceMax = parseFloat(document.getElementById('searchPriceMax').value) || null;
+
+            if (!imageUrl) {
+                showResponse('searchImageResponse', 'Veuillez entrer une URL d\'image', false);
+                return;
+            }
+
+            showResponse('searchImageResponse', 'Recherche en cours...', 'loading');
+
+            const data = {
+                image_url: imageUrl,
+                top_k: topK,
+                category_filter: category || null,
+                price_min: priceMin,
+                price_max: priceMax
+            };
+
+            const result = await apiCall('/api/v1/search', 'POST', data);
+
+            if (result.success) {
+                displaySearchResults('searchImageResponse', result.data);
+            } else {
+                showResponse('searchImageResponse', `Erreur: ${result.error || result.data?.detail}`, false);
+            }
+        }
+
+        // Search by Text
+        async function searchByText() {
+            const textQuery = document.getElementById('searchText').value;
+            const topK = parseInt(document.getElementById('searchTextTopK').value) || 10;
+            const category = document.getElementById('searchTextCategory').value;
+            const priceMin = parseFloat(document.getElementById('searchTextPriceMin').value) || null;
+            const priceMax = parseFloat(document.getElementById('searchTextPriceMax').value) || null;
+
+            if (!textQuery) {
+                showResponse('searchTextResponse', 'Veuillez entrer une requête texte', false);
+                return;
+            }
+
+            showResponse('searchTextResponse', 'Recherche en cours...', 'loading');
+
+            const data = {
+                text_query: textQuery,
+                top_k: topK,
+                category_filter: category || null,
+                price_min: priceMin,
+                price_max: priceMax
+            };
+
+            const result = await apiCall('/api/v1/search', 'POST', data);
+
+            if (result.success) {
+                displaySearchResults('searchTextResponse', result.data);
+            } else {
+                showResponse('searchTextResponse', `Erreur: ${result.error || result.data?.detail}`, false);
+            }
+        }
+
+        // Index Product
+        async function indexProduct() {
+            const id = document.getElementById('productId').value;
+            const name = document.getElementById('productName').value;
+            const description = document.getElementById('productDescription').value;
+            const imageUrl = document.getElementById('productImageUrl').value;
+            const category = document.getElementById('productCategory').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const attributesStr = document.getElementById('productAttributes').value;
+
+            if (!id || !name || !description || !imageUrl || !category || !price) {
+                showResponse('indexResponse', 'Veuillez remplir tous les champs obligatoires (*)', false);
+                return;
+            }
+
+            showResponse('indexResponse', 'Indexation en cours...', 'loading');
+
+            let attributes = null;
+            if (attributesStr) {
+                try {
+                    attributes = JSON.parse(attributesStr);
+                } catch {
+                    showResponse('indexResponse', 'Erreur: Les attributs JSON ne sont pas valides', false);
+                    return;
+                }
+            }
+
+            const data = {
+                id: id,
+                name: name,
+                description: description,
+                image_url: imageUrl,
+                category: category,
+                price: price,
+                attributes: attributes
+            };
+
+            const result = await apiCall('/api/v1/index-product', 'POST', data);
+
+            if (result.success) {
+                showResponse('indexResponse', 
+                    `✅ Produit indexé avec succès!\n\nID: ${id}\nNom: ${name}\n\nRéponse:\n${JSON.stringify(result.data, null, 2)}`, 
+                    true
+                );
+                clearIndexForm();
+            } else {
+                showResponse('indexResponse', `❌ Erreur: ${result.error || result.data?.detail}`, false);
+            }
+        }
+
+        // Health Check
+        async function checkHealth() {
+            const result = await apiCall('/api/v1/health', 'GET');
+
+            if (result.success) {
+                const health = result.data;
+                updateHealthStatus(health);
+                showResponse('healthResponse', 
+                    `✅ État du système:\n\n${JSON.stringify(health, null, 2)}`, 
+                    true
+                );
+            } else {
+                updateHealthStatus({ status: 'unhealthy' });
+                showResponse('healthResponse', 
+                    `❌ Impossible de se connecter à l'API\n\nURL: ${API_BASE_URL}\nErreur: ${result.error}`, 
+                    false
+                );
+            }
+        }
+
+        // Get Collection Info
+        async function getCollectionInfo() {
+            showResponse('healthResponse', 'Chargement des informations...', 'loading');
+            const result = await apiCall('/api/v1/collections', 'GET');
+
+            if (result.success) {
+                showResponse('healthResponse', 
+                    `ℹ️ Informations des collections:\n\n${JSON.stringify(result.data, null, 2)}`, 
+                    true
+                );
+            } else {
+                showResponse('healthResponse', 
+                    `❌ Erreur: ${result.error}`, 
+                    false
+                );
+            }
+        }
+
+        // Display Search Results
+        function displaySearchResults(elementId, data) {
+            let html = `<div class="response-box response-success">
+                <strong>Requête:</strong> ${data.query_type}
+                <strong style="margin-left: 20px;">Résultats:</strong> ${data.total_results}/${data.top_k}
+                <strong style="margin-left: 20px;">Temps:</strong> ${data.execution_time_ms.toFixed(2)}ms
+            </div>`;
+
+            if (data.results && data.results.length > 0) {
+                html += '<div class="results-grid">';
+                data.results.forEach(result => {
+                    const score = Math.round(result.similarity_score * 100);
+                    html += `
+                        <div class="result-card">
+                            <img src="${result.image_url}" alt="${result.name}" class="result-image" onerror="this.src='https://via.placeholder.com/150?text=Error'">
+                            <div class="result-info">
+                                <div class="result-name" title="${result.name}">${result.name}</div>
+                                <div class="result-price">$${result.price.toFixed(2)}</div>
+                                <div class="result-score">
+                                    <span>${score}%</span>
+                                    <div class="score-bar">
+                                        <div class="score-fill" style="width: ${score}%"></div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 11px; color: #999; margin-top: 5px;">ID: ${result.product_id}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            document.getElementById(elementId).innerHTML = html;
+        }
+
+        // Show Response
+        function showResponse(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            let className = 'response-box response-loading';
+            
+            if (type === true) className = 'response-box response-success';
+            else if (type === false) className = 'response-box response-error';
+            
+            element.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        // Update Raw Request
+        function updateRawRequest() {
+            const element = document.getElementById('rawRequest');
+            element.textContent = JSON.stringify(lastRequest, null, 2);
+        }
+
+        // Update Raw Response
+        function updateRawResponse() {
+            const element = document.getElementById('rawResponse');
+            element.textContent = JSON.stringify(lastResponse, null, 2);
+        }
+
+        // Update Health Status
+        function updateHealthStatus(health) {
+            const badge = document.getElementById('statusBadge');
+            const statsContainer = document.getElementById('statsContainer');
+            
+            const isOnline = health.status === 'healthy' || health.status === 'degraded';
+            badge.className = `status-indicator ${isOnline ? 'status-online' : 'status-offline'}`;
+            
+            const dot = badge.querySelector('.dot');
+            dot.className = `dot ${isOnline ? 'online' : 'offline'}`;
+            
+            badge.innerHTML = `<span class="dot ${isOnline ? 'online' : 'offline'}"></span> ${isOnline ? 'En ligne' : 'Hors ligne'}`;
+
+            if (health.qdrant_connected !== undefined) {
+                statsContainer.style.display = 'grid';
+                document.getElementById('statQdrant').textContent = health.qdrant_connected ? '✅' : '❌';
+                document.getElementById('statRedis').textContent = health.redis_connected ? '✅' : '❌';
+                document.getElementById('statModel').textContent = health.model_loaded ? '✅' : '❌';
+                document.getElementById('statAPI').textContent = isOnline ? '✅' : '❌';
+            }
+        }
+
+        // Copy to Clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Copié dans le presse-papiers!');
+            });
+        }
+
+        // Configuration Management
+        function saveConfiguration() {
+            const apiUrl = document.getElementById('apiBaseUrl').value;
+            localStorage.setItem('apiBaseUrl', apiUrl);
+            API_BASE_URL = apiUrl;
+            alert('✅ Configuration sauvegardée!');
+            checkHealth();
+        }
+
+        function loadConfiguration() {
+            const savedUrl = localStorage.getItem('apiBaseUrl');
+            if (savedUrl) {
+                document.getElementById('apiBaseUrl').value = savedUrl;
+                API_BASE_URL = savedUrl;
+            }
+        }
+
+        // Clear Functions
+        function clearSearchImage() {
+            document.getElementById('searchImageUrl').value = '';
+            document.getElementById('searchImageFile').value = '';
+            document.getElementById('imagePreview').classList.remove('show');
+            document.getElementById('searchTopK').value = '10';
+            document.getElementById('searchCategory').value = '';
+            document.getElementById('searchPriceMin').value = '';
+            document.getElementById('searchPriceMax').value = '';
+            document.getElementById('searchImageResponse').innerHTML = '';
+        }
+
+        function clearSearchText() {
+            document.getElementById('searchText').value = '';
+            document.getElementById('searchTextTopK').value = '10';
+            document.getElementById('searchTextCategory').value = '';
+            document.getElementById('searchTextPriceMin').value = '';
+            document.getElementById('searchTextPriceMax').value = '';
+            document.getElementById('searchTextResponse').innerHTML = '';
+        }
+
+        function clearIndexForm() {
+            document.getElementById('productId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productDescription').value = '';
+            document.getElementById('productImageUrl').value = '';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productAttributes').value = '';
+            document.getElementById('indexResponse').innerHTML = '';
+        }
+
+        function clearAll() {
+            clearSearchImage();
+            clearSearchText();
+            clearIndexForm();
+            document.getElementById('rawRequest').textContent = '';
+            document.getElementById('rawResponse').textContent = '';
+            document.getElementById('healthResponse').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
