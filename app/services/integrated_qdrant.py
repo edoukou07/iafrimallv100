@@ -29,29 +29,30 @@ class IntegratedQdrantService:
             self._initialize_client()
     
     def _initialize_client(self):
-        """Initialize Qdrant client with RAM-optimized disk-based storage."""
+        """Initialize Qdrant client connecting to remote server."""
         try:
-            # Use local disk-based storage (persists across restarts)
-            data_path = os.getenv("QDRANT_DATA_PATH", "/app/data/qdrant")
-            os.makedirs(data_path, exist_ok=True)
+            # Connect to remote Qdrant server instead of local storage
+            qdrant_host = os.getenv("QDRANT_HOST", "52.143.186.136")
+            qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
             
-            logger.info(f"Initializing Qdrant with RAM-optimized disk storage at: {data_path}")
+            logger.info(f"Initializing Qdrant connecting to remote server: {qdrant_host}:{qdrant_port}")
             
-            # Initialize with disk-based storage (not RAM)
-            # Qdrant will use memory-mapped files for efficient access
+            # Initialize with remote server connection
             self._client = QdrantClient(
-                path=data_path,
+                host=qdrant_host,
+                port=qdrant_port,
                 prefer_grpc=False,  # Use HTTP for better compatibility
+                https=False,
                 timeout=30.0  # Connection timeout
             )
             
             # Create collection if it doesn't exist
             self._ensure_collection_exists()
             
-            # Log RAM optimization settings
+            # Log configuration
             self._log_memory_info()
             
-            logger.info("✅ Qdrant initialized with RAM-optimized disk storage")
+            logger.info(f"✅ Qdrant initialized, connected to remote server at {qdrant_host}:{qdrant_port}")
         except Exception as e:
             logger.error(f"Failed to initialize Qdrant client: {e}")
             raise
@@ -62,10 +63,9 @@ class IntegratedQdrantService:
             # Get Qdrant info if available
             info = self._client.get_telemetry()
             logger.info("Qdrant Configuration:")
-            logger.info("  ✓ Vector Storage: DISK-BASED (not RAM)")
-            logger.info("  ✓ Cache Strategy: LRU cache for hot vectors only")
-            logger.info("  ✓ Memory Mode: Memory-mapped file access")
-            logger.info("  ✓ Prefetch: Enabled for batch operations")
+            logger.info("  ✓ Storage: Remote Qdrant Server")
+            logger.info("  ✓ Communication: HTTP")
+            logger.info("  ✓ Distance Metric: COSINE")
         except Exception as e:
             logger.warning(f"Could not retrieve telemetry: {e}")
     
