@@ -634,12 +634,14 @@ async def voice_search(
         voice_service = get_voice_service(model_size="base")
         
         # Save audio file temporarily
+        logger.info(f"Received voice search request: filename={audio_file.filename}, content_type={audio_file.content_type}")
         with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp_file:
             content = await audio_file.read()
+            logger.info(f"Audio content size: {len(content)} bytes")
             tmp_file.write(content)
             tmp_audio_path = tmp_file.name
         
-        logger.info(f"Voice search: transcribing {audio_file.filename} ({len(content)} bytes)")
+        logger.info(f"Saved to temp file: {tmp_audio_path}")
         
         # Transcribe audio
         transcription_result = voice_service.transcribe(
@@ -651,7 +653,7 @@ async def voice_search(
         detected_language = transcription_result["language"]
         confidence = transcription_result.get("confidence", 0.95)
         
-        logger.info(f"✓ Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
+        logger.info(f"[OK] Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
         
         # Search using transcribed text (use global embedding_service and qdrant_service)
         embedding = embedding_service.embed_text(transcript_text)
