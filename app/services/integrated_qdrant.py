@@ -125,19 +125,48 @@ class IntegratedQdrantService:
             logger.error(f"Failed to index product {product_id}: {e}")
             return False, None
     
-    def search(self, query_vector: List[float], limit: int = 10) -> List[Dict]:
-        """Search for similar products."""
+    def search(self, query_vector: List[float], limit: int = 10, 
+               score_threshold: float = 0.3, 
+               category_filter: str = None, 
+               min_score: float = None) -> List[Dict]:
+        """
+        Search for similar products with intelligent filtering.
+        
+        Args:
+            query_vector: Query embedding vector
+            limit: Max number of results to return
+            score_threshold: Minimum similarity score (0.0-1.0, default 0.3 for better precision)
+            category_filter: Optional category filter
+            min_score: Alias for score_threshold (for backward compatibility)
+        
+        Returns:
+            List of search results sorted by score
+        """
         try:
+            # Use min_score if provided (backward compatibility)
+            if min_score is not None:
+                score_threshold = min_score
+            
+            # Fetch more results than limit to allow filtering
+            fetch_limit = max(limit * 2, 50)
+            
             results = self._client.search(
                 collection_name=self._collection_name,
                 query_vector=query_vector,
-                limit=limit,
-                score_threshold=0.0
+                limit=fetch_limit,
+                score_threshold=score_threshold  # Intelligent threshold
             )
             
             search_results = []
             for scored_point in results:
                 payload = scored_point.payload
+                
+                # Apply category filter if provided
+                if category_filter:
+                    product_category = payload.get("category", "").lower()
+                    if category_filter.lower() not in product_category:
+                        continue
+                
                 search_results.append({
                     "id": payload.get("product_id"),
                     "score": scored_point.score,
@@ -150,8 +179,12 @@ class IntegratedQdrantService:
                         "url": payload.get("url")
                     }
                 })
+                
+                # Stop once we have enough results
+                if len(search_results) >= limit:
+                    break
             
-            logger.info(f"Search returned {len(search_results)} results")
+            logger.info(f"Search returned {len(search_results)} results (threshold={score_threshold})")
             return search_results
             
         except Exception as e:

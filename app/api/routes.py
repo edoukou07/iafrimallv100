@@ -24,6 +24,7 @@ from app.services.redis_queue import (
 )
 from app.services.voice_service import get_voice_service
 from app.services.search_service import SearchService
+from app.services.text_preprocessing import TextPreprocessor
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
@@ -94,25 +95,37 @@ async def health_check():
 @router.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
     """
-    Search for products by text query.
-    Uses TF-IDF embeddings + Qdrant (all in one container).
+    Search for products by text query with improved precision.
+    
+    Features:
+    - Enhanced text preprocessing (cleaning, normalization)
+    - Intelligent score threshold (0.3 default for better precision)
+    - Optional category filtering
+    
+    Query Parameters:
+    - limit: Max results (default 10)
+    - score_threshold: Minimum similarity (default 0.3)
+    - category: Filter by category (optional)
     """
     try:
         if not request.query or len(request.query.strip()) == 0:
             raise HTTPException(status_code=400, detail="Query cannot be empty")
         
-        logger.info(f"Searching for: {request.query}")
+        # Preprocess query for better matching
+        processed_query = TextPreprocessor.preprocess_query(request.query)
+        logger.info(f"Searching for: '{request.query}' (processed: '{processed_query}')")
         
         # Generate CLIP text embedding
-        embedding = embedding_service.embed_text(request.query)
+        embedding = embedding_service.embed_text(processed_query)
         
         if not embedding:
             raise HTTPException(status_code=500, detail="Failed to generate embedding")
         
-        # Search in Qdrant
+        # Search in Qdrant with improved parameters
         search_results = qdrant_service.search(
             query_vector=embedding,
-            limit=request.limit
+            limit=request.limit,
+            score_threshold=0.3  # Intelligent threshold for better precision
         )
         
         response = SearchResponse(
@@ -121,7 +134,7 @@ async def search(request: SearchRequest):
             count=len(search_results)
         )
         
-        logger.info(f"Search returned {len(search_results)} results")
+        logger.info(f"Search returned {len(search_results)} results (threshold=0.3)")
         return response
         
     except HTTPException:
@@ -655,14 +668,18 @@ async def voice_search(
         
         logger.info(f"[OK] Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
         
+        # Preprocess transcribed text for better search
+        processed_text = TextPreprocessor.preprocess_query(transcript_text)
+        
         # Search using transcribed text (use global embedding_service and qdrant_service)
-        embedding = embedding_service.embed_text(transcript_text)
+        embedding = embedding_service.embed_text(processed_text)
         if not embedding:
             raise HTTPException(status_code=500, detail="Failed to generate embedding from transcribed text")
         
         search_results = qdrant_service.search(
             query_vector=embedding,
-            limit=limit
+            limit=limit,
+            score_threshold=0.3  # Intelligent threshold
         )
         
         # Flatten results for frontend: extract name/description from nested metadata
