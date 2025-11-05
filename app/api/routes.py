@@ -312,9 +312,11 @@ async def search_by_image(file: UploadFile = File(...), limit: int = Query(10)):
             raise HTTPException(status_code=500, detail="Failed to process image")
         
         # Search similar products in Qdrant
+        # For image search, use lower threshold (0.2) because image embeddings are different from text
         search_results = qdrant_service.search(
             query_vector=embedding,
-            limit=limit
+            limit=limit,
+            score_threshold=0.2  # Lower threshold for image similarity
         )
         
         response = {
