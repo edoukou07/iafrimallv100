@@ -674,10 +674,9 @@ async def voice_search(
             "transcription": transcript_text,
             "language": detected_language,
             "confidence": float(confidence),
-            "results": search_results.get("results", []),
-            "count": search_results.get("count", 0),
+            "results": search_results,
+            "count": len(search_results),
             "search_type": "voice",
-            "audio_filename": audio_file.filename,
         }
     
     except Exception as e:
