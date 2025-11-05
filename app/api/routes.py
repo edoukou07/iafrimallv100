@@ -665,6 +665,21 @@ async def voice_search(
             limit=limit
         )
         
+        # Flatten results for frontend: extract name/description from nested metadata
+        flattened_results = []
+        for result in search_results:
+            flattened_results.append({
+                "id": result.get("id"),
+                "name": result.get("metadata", {}).get("name", "Unknown Product"),
+                "description": result.get("metadata", {}).get("description", ""),
+                "score": result.get("score", 0),
+                "image": None  # Placeholder - image field not available from Qdrant
+            })
+        
+        logger.info(f"Voice search flattened results: {len(flattened_results)} products")
+        if flattened_results:
+            logger.info(f"First result: {flattened_results[0]}")
+        
         # Clean up temp file
         import os
         try:
@@ -676,8 +691,8 @@ async def voice_search(
             "transcription": transcript_text,
             "language": detected_language,
             "confidence": float(confidence),
-            "results": search_results,
-            "count": len(search_results),
+            "results": flattened_results,
+            "count": len(flattened_results),
             "search_type": "voice",
         }
     
