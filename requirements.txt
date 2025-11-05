@@ -53,3 +53,7 @@ transformers==4.32.1
 # TF-IDF embeddings for text-only search
 scikit-learn==1.3.2
 psutil==5.9.6
+
+# Voice & Audio Processing
+openai-whisper==20231117
+pydub==0.25.1

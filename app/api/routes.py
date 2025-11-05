@@ -10,6 +10,7 @@ Async Processing:
 import logging
 import uuid
 import json
+import tempfile
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from typing import Optional, List
 from pydantic import BaseModel
@@ -21,6 +22,8 @@ from app.services.redis_queue import (
     get_redis_queue_service,
     IndexJob
 )
+from app.services.voice_service import get_voice_service
+from app.services.search_service import SearchService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
@@ -592,5 +595,116 @@ async def record_query_performance(
         return {"status": "recorded"}
     except Exception as e:
         logger.warning(f"Could not record query performance: {e}")
+
+
+# ============================================================================
+# VOICE SEARCH ENDPOINTS
+# ============================================================================
+
+@router.post("/voice-search")
+async def voice_search(
+    audio_file: UploadFile = File(...),
+    language: Optional[str] = Query(None, description="Language code (e.g., 'en', 'fr'). Auto-detected if None"),
+    limit: int = Query(10, ge=1, le=100, description="Number of results"),
+):
+    """
+    Search by voice: transcribe audio → search by text → return results.
+    
+    - Accepts MP3, WAV, M4A, FLAC, OGG, etc.
+    - Transcribes using OpenAI Whisper (high accuracy)
+    - Searches Qdrant using transcribed text
+    - Returns matching products/images
+    
+    Args:
+        audio_file: Audio file to transcribe
+        language: Language code (auto-detected if None)
+        limit: Max number of results (default 10)
+    
+    Returns:
+        {
+            "transcription": "transcribed text",
+            "language": "detected language",
+            "confidence": 0.95,
+            "results": [...],
+            "search_type": "voice"
+        }
+    """
+    try:
+        # Get voice service
+        voice_service = get_voice_service(model_size="base")
+        
+        # Save audio file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp_file:
+            content = await audio_file.read()
+            tmp_file.write(content)
+            tmp_audio_path = tmp_file.name
+        
+        logger.info(f"Voice search: transcribing {audio_file.filename} ({len(content)} bytes)")
+        
+        # Transcribe audio
+        transcription_result = voice_service.transcribe(
+            tmp_audio_path,
+            language=language,
+        )
+        
+        transcript_text = transcription_result["text"]
+        detected_language = transcription_result["language"]
+        confidence = transcription_result.get("confidence", 0.95)
+        
+        logger.info(f"✓ Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
+        
+        # Search using transcribed text
+        search_service = SearchService()
+        search_results = search_service.search(
+            query=transcript_text,
+            limit=limit,
+            search_type="text"
+        )
+        
+        # Clean up temp file
+        import os
+        try:
+            os.remove(tmp_audio_path)
+        except:
+            pass
+        
+        return {
+            "transcription": transcript_text,
+            "language": detected_language,
+            "confidence": float(confidence),
+            "results": search_results.get("results", []),
+            "count": search_results.get("count", 0),
+            "search_type": "voice",
+            "audio_filename": audio_file.filename,
+        }
+    
+    except Exception as e:
+        logger.error(f"Voice search error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Voice search failed: {str(e)}"
+        )
+
+
+@router.get("/voice/model-info")
+async def voice_model_info():
+    """
+    Get information about the Whisper model.
+    
+    Returns model size, supported languages, etc.
+    """
+    try:
+        voice_service = get_voice_service()
+        model_info = voice_service.get_model_info()
+        return {
+            "model": model_info,
+            "supported_formats": ["MP3", "WAV", "M4A", "FLAC", "OGG", "OPUS"],
+        }
+    except Exception as e:
+        logger.error(f"Could not get model info: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get model info: {str(e)}"
+        )
         return {"status": "warning", "message": str(e)}
 
