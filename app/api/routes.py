@@ -25,6 +25,8 @@ from app.services.redis_queue import (
 from app.services.voice_service import get_voice_service
 from app.services.search_service import SearchService
 from app.services.text_preprocessing import TextPreprocessor
+from app.services.bm25_search import BM25SearchService
+from app.services.hybrid_search import HybridSearchService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
@@ -59,6 +61,8 @@ class EmbedResponse(BaseModel):
 embedding_service = EmbeddingService()
 image_embedding_service = get_image_embedding_service()
 qdrant_service = get_qdrant_service()
+bm25_service = BM25SearchService()
+hybrid_search_service = HybridSearchService(bm25_service)
 
 
 def _get_monitor() -> QdrantMonitor:
@@ -143,7 +147,93 @@ async def search(request: SearchRequest):
         logger.error(f"Search error: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
-@router.post("/embed", response_model=EmbedResponse)
+
+@router.post("/search-hybrid")
+async def search_hybrid(
+    request: SearchRequest,
+    semantic_weight: float = Query(0.7, ge=0.0, le=1.0, description="Weight for semantic search (0-1)"),
+    keyword_weight: float = Query(0.3, ge=0.0, le=1.0, description="Weight for keyword search (0-1)")
+):
+    """
+    Hybrid search combining semantic (CLIP) and keyword (BM25) search.
+    
+    This endpoint combines:
+    1. **Semantic Search (CLIP)**: Understands meaning and context
+    2. **Keyword Search (BM25)**: Matches exact terms and phrases
+    
+    The results are fused using weighted scores:
+    - Default: 70% semantic + 30% keyword
+    - Customize weights via query parameters
+    
+    Example:
+    - "red shoes" → finds both semantically similar items AND items with "red" or "shoes"
+    - "cheap electronics" → finds affordable items with electronic keywords
+    
+    Args:
+        query: Search query
+        limit: Max results (default 10)
+        semantic_weight: Weight for semantic search (default 0.7)
+        keyword_weight: Weight for keyword search (default 0.3)
+    
+    Returns:
+        List of products with both semantic_score and keyword_score
+    """
+    try:
+        if not request.query or len(request.query.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+        # Normalize weights to sum to 1.0
+        total_weight = semantic_weight + keyword_weight
+        if total_weight > 0:
+            semantic_weight = semantic_weight / total_weight
+            keyword_weight = keyword_weight / total_weight
+        else:
+            semantic_weight, keyword_weight = 0.7, 0.3
+        
+        # Preprocess query
+        processed_query = TextPreprocessor.preprocess_query(request.query)
+        logger.info(f"Hybrid search for: '{request.query}' (semantic={semantic_weight:.1%}, keyword={keyword_weight:.1%})")
+        
+        # Get semantic results from CLIP
+        embedding = embedding_service.embed_text(processed_query)
+        if not embedding:
+            raise HTTPException(status_code=500, detail="Failed to generate embedding")
+        
+        semantic_results = qdrant_service.search(
+            query_vector=embedding,
+            limit=request.limit * 2,  # Get more for fusion
+            score_threshold=0.2  # Lower threshold for fusion
+        )
+        
+        # Perform hybrid fusion
+        fused_results = hybrid_search_service.hybrid_search(
+            query=processed_query,
+            semantic_results=semantic_results,
+            limit=request.limit,
+            semantic_weight=semantic_weight,
+            keyword_weight=keyword_weight,
+            min_keyword_score=0.1
+        )
+        
+        response = {
+            "query": request.query,
+            "results": fused_results,
+            "count": len(fused_results),
+            "method": "hybrid (CLIP + BM25)",
+            "weights": {
+                "semantic": semantic_weight,
+                "keyword": keyword_weight
+            }
+        }
+        
+        logger.info(f"Hybrid search returned {len(fused_results)} results")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Hybrid search error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Hybrid search failed: {str(e)}")
 async def get_embedding(request: EmbedRequest):
     """Get CLIP text embedding vector."""
     try:
