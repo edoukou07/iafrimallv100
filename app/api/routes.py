@@ -157,8 +157,16 @@ async def embed_image(file: UploadFile = File(...)):
         - dimension: 512
     """
     try:
-        if not file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        # Validate file content type (handle None case)
+        content_type = file.content_type or ''
+        if not content_type.startswith("image/"):
+            # Try to validate by filename extension as fallback
+            filename = file.filename or ''
+            valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+            has_valid_ext = any(filename.lower().endswith(ext) for ext in valid_extensions)
+            
+            if not has_valid_ext and not content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="File must be an image")
         
         # Read image data
         image_data = await file.read()
@@ -209,7 +217,7 @@ async def index_product(
             metadata_dict = {}
         
         # Index in Qdrant
-        success = qdrant_service.index_product(
+        success, qdrant_id = qdrant_service.index_product(
             product_id=product_id,
             name=name,
             description=description,
@@ -223,6 +231,8 @@ async def index_product(
         return {
             "status": "success",
             "message": f"Product {product_id} indexed successfully",
+            "product_id": product_id,
+            "qdrant_id": qdrant_id,
             "embedding_dimension": len(embedding)
         }
         
@@ -263,8 +273,17 @@ async def search_by_image(file: UploadFile = File(...), limit: int = Query(10)):
         List of similar products from database
     """
     try:
-        if not file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        # Validate file content type (handle None case)
+        content_type = file.content_type or ''
+        if not content_type.startswith("image/"):
+            # Try to validate by filename extension as fallback
+            filename = file.filename or ''
+            valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+            file_ext = ''.join([c for c in filename.lower() if c.isalnum() or c == '.'])
+            has_valid_ext = any(filename.lower().endswith(ext) for ext in valid_extensions)
+            
+            if not has_valid_ext and not content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="File must be an image")
         
         # Read image data
         image_data = await file.read()
@@ -326,8 +345,16 @@ async def index_product_with_image(
     - Full transparency (track job status)
     """
     try:
-        if not image_file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        # Validate file content type (handle None case)
+        content_type = image_file.content_type or ''
+        if not content_type.startswith("image/"):
+            # Try to validate by filename extension as fallback
+            filename = image_file.filename or ''
+            valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+            has_valid_ext = any(filename.lower().endswith(ext) for ext in valid_extensions)
+            
+            if not has_valid_ext and not content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="File must be an image")
         
         # Read image bytes
         image_data = await image_file.read()
@@ -373,7 +400,7 @@ async def index_product_with_image(
                 raise HTTPException(status_code=500, detail="Failed to process image")
             
             metadata_dict["has_image"] = True
-            qdrant_success = qdrant_service.index_product(
+            qdrant_success, qdrant_id = qdrant_service.index_product(
                 product_id=product_id,
                 name=name,
                 description=description,
@@ -388,6 +415,7 @@ async def index_product_with_image(
                 "status": "indexed",
                 "job_id": job_id,
                 "product_id": product_id,
+                "qdrant_id": qdrant_id,
                 "message": "Product indexed synchronously (Redis unavailable)",
                 "processing_mode": "sync"
             }

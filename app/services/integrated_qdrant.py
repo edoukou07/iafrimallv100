@@ -92,14 +92,17 @@ class IntegratedQdrantService:
             raise
     
     def index_product(self, product_id: str, name: str, description: str, 
-                     embedding: List[float], metadata: Dict = None) -> bool:
-        """Index a product with embedding."""
+                     embedding: List[float], metadata: Dict = None) -> tuple:
+        """Index a product with embedding. Returns (success: bool, qdrant_id: int or None)"""
         try:
             # Combine name + description for better search
             full_text = f"{name} {description}"
             
+            # Generate the Qdrant ID (same as what would be stored)
+            qdrant_id = hash(product_id) % (2**63)  # Convert to positive int64
+            
             point = PointStruct(
-                id=hash(product_id) % (2**63),  # Convert to positive int64
+                id=qdrant_id,
                 vector=embedding,
                 payload={
                     "product_id": product_id,
@@ -115,12 +118,12 @@ class IntegratedQdrantService:
                 points=[point]
             )
             
-            logger.info(f"Indexed product: {product_id}")
-            return True
+            logger.info(f"Indexed product: {product_id} with Qdrant ID: {qdrant_id}")
+            return True, qdrant_id
             
         except Exception as e:
             logger.error(f"Failed to index product {product_id}: {e}")
-            return False
+            return False, None
     
     def search(self, query_vector: List[float], limit: int = 10) -> List[Dict]:
         """Search for similar products."""

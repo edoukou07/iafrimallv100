@@ -167,9 +167,10 @@ class AsyncImageIndexerWorker:
                 metadata["has_image"] = True
                 metadata["indexed_at"] = datetime.now().isoformat()
                 
-                success = qdrant.index_product(
+                success, qdrant_id = qdrant.index_product(
                     product_id=product_id,
-                    product_name=task.get("name", ""),
+                    name=task.get("name", ""),
+                    description=task.get("description", ""),
                     embedding=embedding,
                     metadata=metadata
                 )
@@ -178,7 +179,7 @@ class AsyncImageIndexerWorker:
                     logger.error(f"Task {task_id}: Qdrant indexing failed")
                     return False
                 
-                logger.info(f"✓ Task {task_id}: Product {product_id} indexed successfully")
+                logger.info(f"✓ Task {task_id}: Product {product_id} indexed successfully with Qdrant ID: {qdrant_id}")
                 return True
             
             except Exception as e:
