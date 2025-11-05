@@ -21,6 +21,11 @@ WORKDIR /app
 # Copy only Python packages from builder
 COPY --from=builder /root/.local /root/.local
 
+# Install runtime dependencies (ffmpeg for Whisper audio processing)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy application
 COPY app/ ./app/
 
