@@ -672,8 +672,8 @@ async def voice_search(
                 "id": result.get("id"),
                 "name": result.get("metadata", {}).get("name", "Unknown Product"),
                 "description": result.get("metadata", {}).get("description", ""),
+                "image": result.get("metadata", {}).get("image_url"),
                 "score": result.get("score", 0),
-                "image": None  # Placeholder - image field not available from Qdrant
             })
         
         logger.info(f"Voice search flattened results: {len(flattened_results)} products")

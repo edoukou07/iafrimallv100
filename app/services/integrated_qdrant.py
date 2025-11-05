@@ -137,12 +137,17 @@ class IntegratedQdrantService:
             
             search_results = []
             for scored_point in results:
+                payload = scored_point.payload
                 search_results.append({
-                    "id": scored_point.payload.get("product_id"),
+                    "id": payload.get("product_id"),
                     "score": scored_point.score,
                     "metadata": {
-                        "name": scored_point.payload.get("name"),
-                        "description": scored_point.payload.get("description")
+                        "name": payload.get("name"),
+                        "description": payload.get("description"),
+                        "image_url": payload.get("image_url"),
+                        "price": payload.get("price"),
+                        "category": payload.get("category"),
+                        "url": payload.get("url")
                     }
                 })
             
