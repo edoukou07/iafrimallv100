@@ -653,12 +653,14 @@ async def voice_search(
         
         logger.info(f"✓ Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
         
-        # Search using transcribed text
-        search_service = SearchService()
-        search_results = search_service.search(
-            query=transcript_text,
-            limit=limit,
-            search_type="text"
+        # Search using transcribed text (use global embedding_service and qdrant_service)
+        embedding = embedding_service.embed_text(transcript_text)
+        if not embedding:
+            raise HTTPException(status_code=500, detail="Failed to generate embedding from transcribed text")
+        
+        search_results = qdrant_service.search(
+            query_vector=embedding,
+            limit=limit
         )
         
         # Clean up temp file
@@ -697,14 +699,36 @@ async def voice_model_info():
         voice_service = get_voice_service()
         model_info = voice_service.get_model_info()
         return {
+            "status": "success",
             "model": model_info,
             "supported_formats": ["MP3", "WAV", "M4A", "FLAC", "OGG", "OPUS"],
         }
     except Exception as e:
-        logger.error(f"Could not get model info: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get model info: {str(e)}"
-        )
-        return {"status": "warning", "message": str(e)}
+        logger.error(f"Could not get model info: {str(e)}", exc_info=True)
+        return {
+            "status": "warning",
+            "message": f"Voice service not ready: {str(e)}",
+            "supported_formats": ["MP3", "WAV", "M4A", "FLAC", "OGG", "OPUS"],
+        }
+
+
+@router.get("/health/voice")
+async def voice_service_health():
+    """
+    Health check for voice service.
+    """
+    try:
+        voice_service = get_voice_service()
+        return {
+            "status": "healthy",
+            "service": "voice",
+            "model_size": voice_service.model_size,
+        }
+    except Exception as e:
+        logger.error(f"Voice service health check failed: {str(e)}", exc_info=True)
+        return {
+            "status": "unhealthy",
+            "service": "voice",
+            "error": str(e),
+        }
 
