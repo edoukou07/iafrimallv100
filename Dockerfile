@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Use consolidated requirements (includes PyTorch 2.0.1 + CLIP)
 COPY requirements.txt requirements.txt
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Stage 2: Runtime - minimal image
 FROM python:3.11-slim
@@ -46,7 +46,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 
 # Run with gunicorn + uvicorn
 CMD ["gunicorn", \
-     "-w", "2", \
+     "-w", "1", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "--bind", "0.0.0.0:8000", \
      "--timeout", "60", \

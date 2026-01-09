@@ -18,6 +18,7 @@ class IntegratedQdrantService:
     _instance = None
     _client = None
     _collection_name = "products"
+    _initialized = False
     
     def __new__(cls):
         if cls._instance is None:
@@ -25,14 +26,22 @@ class IntegratedQdrantService:
         return cls._instance
     
     def __init__(self):
-        if self._client is None:
-            self._initialize_client()
+        """Lazy initialization - don't connect until first use."""
+        pass  # Don't connect at startup
+    
+    def _ensure_initialized(self):
+        """Initialize client on first use (lazy loading)."""
+        if self._initialized:
+            return
+        
+        self._initialized = True
+        self._initialize_client()
     
     def _initialize_client(self):
         """Initialize Qdrant client connecting to remote server."""
         try:
             # Connect to remote Qdrant server instead of local storage
-            qdrant_host = os.getenv("QDRANT_HOST", "52.143.186.136")
+            qdrant_host = os.getenv("QDRANT_HOST", "qdrant")  # Default to docker service name
             qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
             
             logger.info(f"Initializing Qdrant connecting to remote server: {qdrant_host}:{qdrant_port}")
@@ -43,7 +52,7 @@ class IntegratedQdrantService:
                 port=qdrant_port,
                 prefer_grpc=False,  # Use HTTP for better compatibility
                 https=False,
-                timeout=30.0  # Connection timeout
+                timeout=60.0  # Increased timeout to 60 seconds
             )
             
             # Create collection if it doesn't exist
@@ -94,6 +103,7 @@ class IntegratedQdrantService:
     def index_product(self, product_id: str, name: str, description: str, 
                      embedding: List[float], metadata: Dict = None) -> tuple:
         """Index a product with embedding. Returns (success: bool, qdrant_id: int or None)"""
+        self._ensure_initialized()  # Lazy init
         try:
             # Combine name + description for better search
             full_text = f"{name} {description}"
@@ -129,8 +139,8 @@ class IntegratedQdrantService:
                score_threshold: float = 0.3, 
                category_filter: str = None, 
                min_score: float = None) -> List[Dict]:
-        """
-        Search for similar products with intelligent filtering.
+        """Search for similar products with intelligent filtering."""
+        self._ensure_initialized()  # Lazy init
         
         Args:
             query_vector: Query embedding vector
@@ -193,6 +203,7 @@ class IntegratedQdrantService:
     
     def get_collection_stats(self) -> Dict:
         """Get collection statistics."""
+        self._ensure_initialized()  # Lazy init
         try:
             collection_info = self._client.get_collection(self._collection_name)
             return {
@@ -207,6 +218,7 @@ class IntegratedQdrantService:
     
     def health_check(self) -> bool:
         """Check if Qdrant is healthy."""
+        self._ensure_initialized()  # Lazy init
         try:
             self._client.get_collections()
             return True

@@ -1,0 +1,16 @@
+[Unit]
+Description=Image Search API - Docker Compose
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/image-search-api
+ExecStart=/usr/local/bin/docker-compose -f docker-compose-vm.yml up
+ExecStop=/usr/local/bin/docker-compose -f docker-compose-vm.yml down
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

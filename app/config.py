@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     redis_host: str = "redis"
     redis_port: int = 6379
     redis_password: str = ""
+    redis_url: str = ""
     
     # Model
     model_name: str = "openai/clip-vit-base-patch32"

@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Redis - Cache local
+  redis:
+    image: redis:7-alpine
+    container_name: redis-local
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass "redis-secure-password"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - search-network
+
+  # Qdrant - Vector Database local
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-local
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      QDRANT_API_KEY: "qdrant-api-key-secure"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - search-network
+
+  # FastAPI - Image Search API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-server
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    environment:
+      # Redis Configuration (local)
+      REDIS_URL: "redis://:redis-secure-password@redis:6379?ssl=False"
+      
+      # Qdrant Configuration (local)
+      QDRANT_HOST: "qdrant"
+      QDRANT_PORT: "6333"
+      QDRANT_API_KEY: "qdrant-api-key-secure"
+      
+      # Application
+      ENVIRONMENT: "production"
+      DEBUG: "False"
+      MODEL_NAME: "openai/clip-vit-base-patch32"
+      EMBEDDING_DIM: "512"
+      TOP_K: "20"
+      CACHE_TTL: "7200"
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - search-network
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  qdrant_storage:
+    driver: local
+
+networks:
+  search-network:
+    driver: bridge

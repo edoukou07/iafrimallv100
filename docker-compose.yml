@@ -25,6 +25,11 @@
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT_API_KEY=qdrant-api-key
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     networks:
       - image-search-net
     restart: unless-stopped
@@ -40,12 +45,16 @@
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_DATA_PATH=/app/data/qdrant
       - LOG_LEVEL=INFO
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
     volumes:
       - ./app:/app/app
       - ./data/api_uploads:/app/data/uploads
       - ./data/api_cache:/app/data/cache
     depends_on:
       redis:
+        condition: service_healthy
+      qdrant:
         condition: service_healthy
     networks:
       - image-search-net

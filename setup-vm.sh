@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Script de setup initial pour la VM Ubuntu
+# Exécuter avec: sudo bash setup-vm.sh
+
+echo "================================"
+echo "Setup VM Ubuntu - Image Search API"
+echo "================================"
+echo ""
+
+# Update système
+echo "📦 Mise à jour du système..."
+sudo apt-get update
+sudo apt-get upgrade -y
+
+# Installer Docker
+echo "🐳 Installation de Docker..."
+sudo apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo \
+  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Installer Docker Compose v2
+echo "📝 Installation de Docker Compose..."
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Ajouter azureuser au groupe docker
+echo "👤 Configuration des permissions Docker..."
+sudo usermod -aG docker azureuser
+
+# Vérifier les installations
+echo ""
+echo "✅ Vérification des installations:"
+docker --version
+docker-compose --version
+echo ""
+
+# Créer répertoire de travail
+echo "📁 Création du répertoire de travail..."
+mkdir -p /opt/image-search-api
+cd /opt/image-search-api
+
+echo "✅ Setup initial terminé!"
+echo ""
+echo "Prochaines étapes:"
+echo "1. Télécharger docker-compose-vm.yml dans /opt/image-search-api/"
+echo "2. Exécuter: cd /opt/image-search-api && docker-compose -f docker-compose-vm.yml up -d"
+echo "3. Vérifier: curl http://localhost:8000/api/v1/health"
+echo ""

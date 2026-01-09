@@ -111,4 +111,27 @@ class CacheService:
             return True
         except Exception as e:
             logger.error(f"Redis health check failed: {e}")
-            return False
+            return False    
+    @classmethod
+    def from_url(cls, url: str, ttl: int = 3600):
+        """Create CacheService from Redis URL (e.g., redis://:password@host:port?ssl=True)"""
+        logger.info(f"Connecting to Redis from URL: {url[:30]}...")
+        
+        redis_client = redis.from_url(url, decode_responses=True, socket_connect_timeout=5)
+        
+        # Create instance and set redis_client
+        instance = cls.__new__(cls)
+        instance.redis_client = redis_client
+        instance.ttl = ttl
+        instance.host = "redis-url"
+        instance.port = 0
+        
+        # Test connection
+        try:
+            redis_client.ping()
+            logger.info("Connected to Redis successfully via URL")
+        except Exception as e:
+            logger.error(f"Error connecting to Redis via URL: {e}")
+            instance.redis_client = None
+        
+        return instance
