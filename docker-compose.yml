@@ -26,10 +26,11 @@
     environment:
       - QDRANT_API_KEY=qdrant-api-key
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:6333/health || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 30
+      start_period: 60s
     networks:
       - image-search-net
     restart: unless-stopped
