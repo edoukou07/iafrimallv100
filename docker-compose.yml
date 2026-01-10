@@ -25,11 +25,6 @@
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT_API_KEY=qdrant-api-key
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
     networks:
       - image-search-net
     restart: unless-stopped
@@ -55,10 +50,10 @@
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - image-search-net
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
