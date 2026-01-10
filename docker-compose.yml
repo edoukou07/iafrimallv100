@@ -119,17 +119,16 @@
       - image-search-net
     command: python -m app.workers.image_indexer_worker --worker-id worker-2
     restart: unless-stopped
-      - ./app:/app/app
-      - ./data/worker2_cache:/app/data/cache
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - image-search-net
-    command: python -m app.workers.image_indexer_worker --worker-id worker-2
-    restart: unless-stopped
 
 volumes:
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+
+networks:
+  image-search-net:
+    driver: bridge
   redis_data:
     driver: local
   qdrant_data:
