@@ -77,8 +77,8 @@ def _get_monitor() -> QdrantMonitor:
 async def health_check():
     """Health check endpoint."""
     try:
-        qdrant_ok = _get_qdrant_service().health_check()
-        stats = _get_qdrant_service().get_collection_stats()
+        qdrant_ok = get_qdrant_service().health_check()
+        stats = get_qdrant_service().get_collection_stats()
         
         return {
             "status": "healthy" if qdrant_ok else "degraded",
@@ -199,7 +199,7 @@ async def search_hybrid(
         if not embedding:
             raise HTTPException(status_code=500, detail="Failed to generate embedding")
         
-        semantic_results = _get_qdrant_service().search(
+        semantic_results = get_qdrant_service().search(
             query_vector=embedding,
             limit=request.limit * 2,  # Get more for fusion
             score_threshold=0.2  # Lower threshold for fusion
@@ -323,7 +323,7 @@ async def index_product(
             metadata_dict = {}
         
         # Index in Qdrant
-        success, qdrant_id = _get_qdrant_service().index_product(
+        success, qdrant_id = get_qdrant_service().index_product(
             product_id=product_id,
             name=name,
             description=description,
@@ -508,7 +508,7 @@ async def index_product_with_image(
                 raise HTTPException(status_code=500, detail="Failed to process image")
             
             metadata_dict["has_image"] = True
-            qdrant_success, qdrant_id = _get_qdrant_service().index_product(
+            qdrant_success, qdrant_id = get_qdrant_service().index_product(
                 product_id=product_id,
                 name=name,
                 description=description,
