@@ -129,11 +129,3 @@ volumes:
 networks:
   image-search-net:
     driver: bridge
-  redis_data:
-    driver: local
-  qdrant_data:
-    driver: local
-
-networks:
-  image-search-net:
-    driver: bridge
