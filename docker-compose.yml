@@ -77,16 +77,16 @@
       - WORKER_BATCH_SIZE=1
       - LOG_LEVEL=INFO
     volumes:
-    healthcheck:
-      test: ["CMD", "python", "-c", "import redis; redis.Redis.from_url('redis://redis:6379/0').ping()"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
       - ./app:/app/app
       - ./data/worker1_cache:/app/data/cache
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; redis.Redis.from_url('redis://redis:6379/0').ping()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - image-search-net
     command: python -m app.workers.image_indexer_worker --worker-id worker-1
@@ -105,11 +105,20 @@
       - WORKER_BATCH_SIZE=1
       - LOG_LEVEL=INFO
     volumes:
+      - ./app:/app/app
+      - ./data/worker2_cache:/app/data/cache
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import redis; redis.Redis.from_url('redis://redis:6379/0').ping()"]
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - image-search-net
+    command: python -m app.workers.image_indexer_worker --worker-id worker-2
+    restart: unless-stopped
       - ./app:/app/app
       - ./data/worker2_cache:/app/data/cache
     depends_on:
