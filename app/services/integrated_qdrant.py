@@ -139,8 +139,8 @@ class IntegratedQdrantService:
                score_threshold: float = 0.3, 
                category_filter: str = None, 
                min_score: float = None) -> List[Dict]:
-        """Search for similar products with intelligent filtering."""
-        self._ensure_initialized()  # Lazy init
+        """
+        Search for similar products with intelligent filtering.
         
         Args:
             query_vector: Query embedding vector
@@ -152,6 +152,8 @@ class IntegratedQdrantService:
         Returns:
             List of search results sorted by score
         """
+        self._ensure_initialized()  # Lazy init
+        
         try:
             # Use min_score if provided (backward compatibility)
             if min_score is not None:
