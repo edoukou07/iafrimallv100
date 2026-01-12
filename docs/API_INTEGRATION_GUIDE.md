@@ -10,9 +10,9 @@
 L'**Image Search API** permet à votre e-commerce de:
 - 🔎 Rechercher des produits par **texte** (requête sémantique)
 - 📷 Rechercher par **image** (produits similaires visuellement)
-- 🎤 Rechercher par **voix** (audio → texte → recherche)
 - 🔄 **Indexer** de nouveaux produits avec embeddings
-- 📊 Récupérer des **statistiques** et monitoring
+- 📊 **Monitorer** l'API et les tâches d'indexation
+- 🚀 Générer des **embeddings CLIP** pour l'analyse
 
 **Latence:** 150-300ms par requête | **Débit:** 10+ req/sec
 
@@ -72,41 +72,9 @@ curl -X POST "http://20.238.104.13:8000/api/v1/search" \
 
 ---
 
-## 📚 Endpoints Essentiels
+## 📚 Endpoints Disponibles
 
-### 1️⃣ Vérifier la Santé du Service
-
-```http
-GET /api/v1/health
-```
-
-**Réponse:**
-```json
-{
-  "status": "healthy",
-  "service": "Image Search API (Container Apps)",
-  "version": "3.0",
-  "qdrant": {
-    "connected": true,
-    "stats": {
-      "name": "products",
-      "points_count": 150,
-      "vectors_count": 150
-    }
-  }
-}
-```
-
-**Utilisation:**
-```python
-response = requests.get(f"{API_URL}/api/v1/health")
-if response.json()["status"] == "healthy":
-    print("API opérationnelle")
-```
-
----
-
-### 2️⃣ Recherche par Texte
+### 1️⃣ Recherche par Texte
 
 ```http
 POST /api/v1/search
@@ -135,18 +103,6 @@ Content-Type: application/json
         "category": "footwear",
         "url": "https://example.com/products/shoe1"
       }
-    },
-    {
-      "id": "456",
-      "score": 0.76,
-      "metadata": {
-        "name": "Adidas Red Sports Shoes",
-        "description": "Comfortable red athletic shoes",
-        "image_url": "https://example.com/shoe2.jpg",
-        "price": 99.99,
-        "category": "footwear",
-        "url": "https://example.com/products/shoe2"
-      }
     }
   ]
 }
@@ -167,10 +123,8 @@ def search_products(query, limit=10):
         json={"query": query, "limit": limit},
         timeout=30
     )
-    data = response.json()
-    return data["results"]
+    return response.json()["results"]
 
-# Utilisation
 shoes = search_products("red running shoes", limit=5)
 for product in shoes:
     print(f"{product['metadata']['name']} - Score: {product['score']}")
@@ -178,7 +132,7 @@ for product in shoes:
 
 ---
 
-### 3️⃣ Recherche par Image
+### 2️⃣ Recherche par Image
 
 ```http
 POST /api/v1/search-image
@@ -187,8 +141,6 @@ Content-Type: multipart/form-data
 file: <image_file>
 limit: 10
 ```
-
-**Réponse:** Identique à la recherche texte
 
 **Formats acceptés:** JPEG, PNG, GIF, WebP, BMP  
 **Taille max:** 50MB
@@ -207,92 +159,83 @@ def search_by_image(image_path, limit=10):
         )
     return response.json()["results"]
 
-# Utilisation
 results = search_by_image("product.jpg", limit=10)
 ```
 
-**JavaScript:**
-```javascript
-async function searchByImage(imageFile, limit = 10) {
-  const formData = new FormData();
-  formData.append('file', imageFile);
-  formData.append('limit', limit);
-
-  const response = await axios.post(
-    `${API_URL}/api/v1/search-image`,
-    formData,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 30000
-    }
-  );
-  return response.data.results;
-}
-```
-
 ---
 
-### 4️⃣ Recherche Hybride (Texte + Mots-clés)
+### 3️⃣ Générer un Embedding Texte
 
 ```http
-POST /api/v1/search-hybrid
+POST /api/v1/embed
 Content-Type: application/json
 
 {
-  "query": "red shoes",
-  "limit": 10
+  "text": "red running shoes"
 }
 ```
 
-Combine **recherche sémantique CLIP** + **BM25 keyword matching** pour meilleurs résultats.
+**Réponse:**
+```json
+{
+  "embedding": [0.125, -0.234, 0.512, ...],
+  "model": "clip-vit-base-patch32",
+  "dimensions": 512
+}
+```
 
 **Python:**
 ```python
-response = requests.post(
-    f"{API_URL}/api/v1/search-hybrid",
-    json={"query": "red shoes", "limit": 10}
-)
-results = response.json()["results"]
+def get_text_embedding(text):
+    response = requests.post(
+        f"{API_URL}/api/v1/embed",
+        json={"text": text},
+        timeout=30
+    )
+    return response.json()["embedding"]
+
+embedding = get_text_embedding("blue shoes")
+print(f"Embedding: {len(embedding)} dimensions")
 ```
 
 ---
 
-### 5️⃣ Recherche Vocale
+### 4️⃣ Générer un Embedding Image
 
 ```http
-POST /api/v1/voice-search
+POST /api/v1/embed-image
 Content-Type: multipart/form-data
 
-file: <audio_file>
-limit: 10
+file: <image_file>
 ```
 
-**Formats acceptés:** MP3, WAV, OGG, FLAC, M4A  
-**Taille max:** 50MB
-
-**Fonctionnement:**
-1. Audio → Transcription (Whisper)
-2. Texte transcrit → Recherche sémantique
-3. Retour des résultats
+**Réponse:**
+```json
+{
+  "embedding": [0.125, -0.234, 0.512, ...],
+  "model": "clip-vit-base-patch32",
+  "dimensions": 512
+}
+```
 
 **Python:**
 ```python
-def search_by_voice(audio_path, limit=10):
-    with open(audio_path, 'rb') as f:
+def get_image_embedding(image_path):
+    with open(image_path, 'rb') as f:
         files = {'file': f}
-        data = {'limit': limit}
         response = requests.post(
-            f"{API_URL}/api/v1/voice-search",
+            f"{API_URL}/api/v1/embed-image",
             files=files,
-            data=data,
             timeout=30
         )
-    return response.json()["results"]
+    return response.json()["embedding"]
+
+embedding = get_image_embedding("shoe.jpg")
 ```
 
 ---
 
-### 6️⃣ Indexer un Produit
+### 5️⃣ Indexer un Produit
 
 ```http
 POST /api/v1/index-product
@@ -302,23 +245,13 @@ Content-Type: application/json
   "product_id": "123",
   "name": "Nike Red Running Shoes",
   "description": "High-performance red running shoes",
-  "embedding": [0.1, 0.2, 0.3, ...],  // 512 dimensions
+  "embedding": [0.1, 0.2, 0.3, ...],
   "metadata": {
     "price": 129.99,
     "category": "footwear",
     "url": "https://example.com/products/shoe1",
     "image_url": "https://example.com/shoe1.jpg"
   }
-}
-```
-
-**Retour:**
-```json
-{
-  "success": true,
-  "product_id": "123",
-  "qdrant_id": 9876543210,
-  "indexed": true
 }
 ```
 
@@ -342,7 +275,7 @@ def index_product(product_id, name, description, embedding, metadata=None):
 
 ---
 
-### 7️⃣ Indexer avec Image (Embedding Auto)
+### 6️⃣ Indexer avec Image (Embedding Auto)
 
 ```http
 POST /api/v1/index-product-with-image
@@ -377,52 +310,139 @@ def index_product_with_image(product_id, name, description, image_path, metadata
             timeout=30
         )
     return response.json()["success"]
-
-# Utilisation
-success = index_product_with_image(
-    product_id="123",
-    name="Nike Red Shoes",
-    description="High-performance red running shoes",
-    image_path="shoe.jpg",
-    metadata={
-        "price": "129.99",
-        "category": "footwear",
-        "url": "https://example.com/products/shoe1"
-    }
-)
 ```
 
 ---
 
-### 8️⃣ Récupérer les Statistiques
+### 7️⃣ Vérifier le Statut d'une Tâche
 
 ```http
-GET /api/v1/stats
+GET /api/v1/queue/status/{job_id}
 ```
 
 **Réponse:**
 ```json
 {
-  "name": "products",
-  "points_count": 1250,
-  "vectors_count": 1250,
-  "segment_count": 5,
-  "indexed_at": "2026-01-10T10:15:32Z"
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "completed",
+  "product_id": "123",
+  "product_name": "Nike Red Shoes",
+  "progress": 100,
+  "indexed_at": "2026-01-10T10:15:32Z",
+  "error": null
+}
+```
+
+**Statuts:** `pending`, `processing`, `completed`, `failed`
+
+**Python:**
+```python
+def check_job_status(job_id):
+    response = requests.get(
+        f"{API_URL}/api/v1/queue/status/{job_id}",
+        timeout=10
+    )
+    return response.json()
+
+status = check_job_status("550e8400-e29b-41d4-a716-446655440000")
+print(f"Statut: {status['status']}")
+```
+
+---
+
+### 8️⃣ Récupérer les Statistiques de la Queue
+
+```http
+GET /api/v1/queue/stats
+```
+
+**Réponse:**
+```json
+{
+  "total_jobs": 150,
+  "pending": 5,
+  "completed": 140,
+  "failed": 5,
+  "processing": 1,
+  "avg_time_ms": 2345
 }
 ```
 
 **Python:**
 ```python
-response = requests.get(f"{API_URL}/api/v1/stats")
+response = requests.get(f"{API_URL}/api/v1/queue/stats")
 stats = response.json()
-print(f"Total produits indexés: {stats['points_count']}")
+print(f"En attente: {stats['pending']}")
+print(f"Complétées: {stats['completed']}")
+```
+
+---
+
+### 9️⃣ Récupérer les Métriques de Performance
+
+```http
+GET /api/v1/performance/monitor
+```
+
+**Réponse:**
+```json
+{
+  "avg_search_latency_ms": 245,
+  "p95_latency_ms": 380,
+  "p99_latency_ms": 520,
+  "requests_per_sec": 8.5,
+  "total_requests": 15432,
+  "uptime_hours": 48.5,
+  "cpu_usage_percent": 42,
+  "memory_usage_mb": 1024
+}
+```
+
+**Python:**
+```python
+def get_performance_metrics():
+    response = requests.get(
+        f"{API_URL}/api/v1/performance/monitor",
+        timeout=10
+    )
+    return response.json()
+
+metrics = get_performance_metrics()
+print(f"Latence moyenne: {metrics['avg_search_latency_ms']}ms")
+```
+
+---
+
+### 🔟 Supprimer un Produit de l'Index
+
+```http
+DELETE /api/v1/collections/products/points/{product_id}
+```
+
+**Réponse:**
+```json
+{
+  "success": true,
+  "product_id": "123",
+  "message": "Product removed from index"
+}
+```
+
+**Python:**
+```python
+def delete_product(product_id):
+    response = requests.delete(
+        f"{API_URL}/api/v1/collections/products/points/{product_id}",
+        timeout=10
+    )
+    return response.json()["success"]
+
+delete_product("123")
 ```
 
 ---
 
 ## 🔧 Gestion d'Erreurs
-
-**Tous les appels doivent gérer les erreurs:**
 
 ```python
 def safe_search(query, limit=10):
@@ -432,29 +452,26 @@ def safe_search(query, limit=10):
             json={"query": query, "limit": limit},
             timeout=30
         )
-        response.raise_for_status()  # Vérifie le statut HTTP
+        response.raise_for_status()
         return response.json()["results"]
     
     except requests.exceptions.Timeout:
-        print("Erreur: Requête timeout (>30s)")
+        print("Erreur: Timeout (>30s)")
         return []
     except requests.exceptions.ConnectionError:
-        print("Erreur: Impossible de se connecter à l'API")
+        print("Erreur: Impossible de se connecter")
         return []
     except requests.exceptions.HTTPError as e:
-        print(f"Erreur HTTP {e.response.status_code}: {e.response.text}")
-        return []
-    except ValueError:
-        print("Erreur: Réponse JSON invalide")
+        print(f"Erreur HTTP {e.response.status_code}")
         return []
 ```
 
-**Codes d'erreur courants:**
+**Codes d'erreur:**
 
 | Code | Signification |
 |------|---------------|
 | 200 | ✅ Succès |
-| 400 | ❌ Requête invalide (query vide, etc.) |
+| 400 | ❌ Requête invalide |
 | 404 | ❌ Endpoint non trouvé |
 | 500 | ❌ Erreur serveur |
 | 503 | ❌ Service indisponible |
@@ -463,29 +480,25 @@ def safe_search(query, limit=10):
 
 ## 🎯 Cas d'Usage Courants
 
-### Barre de Recherche E-commerce
+### Barre de Recherche
 
 ```python
 def product_search_bar(query):
-    """Intégration simple pour barre de recherche"""
     try:
         response = requests.post(
             f"{API_URL}/api/v1/search",
             json={"query": query, "limit": 20},
             timeout=10
         )
-        if response.status_code == 200:
-            return response.json()["results"]
+        return response.json()["results"] if response.status_code == 200 else []
     except:
-        pass
-    return []
+        return []
 ```
 
-### Recherche Inverse (Upload Image)
+### Recherche Inverse Image
 
 ```python
 def reverse_image_search(image_bytes):
-    """Client télécharge une image, trouve produits similaires"""
     try:
         files = {'file': ('image.jpg', image_bytes, 'image/jpeg')}
         response = requests.post(
@@ -498,11 +511,10 @@ def reverse_image_search(image_bytes):
         return []
 ```
 
-### Bulk Indexing (Import Catalogue)
+### Bulk Indexing
 
 ```python
 def index_all_products(products_list):
-    """Indexer plusieurs produits"""
     indexed = 0
     failed = 0
     
@@ -512,7 +524,7 @@ def index_all_products(products_list):
                 "product_id": product["id"],
                 "name": product["name"],
                 "description": product["description"],
-                "embedding": product["embedding"],  # CLIP embedding 512-dim
+                "embedding": product["embedding"],
                 "metadata": {
                     "price": product["price"],
                     "category": product["category"],
@@ -520,23 +532,19 @@ def index_all_products(products_list):
                     "image_url": product["image_url"]
                 }
             }
-            
             response = requests.post(
                 f"{API_URL}/api/v1/index-product",
                 json=payload,
                 timeout=30
             )
-            
             if response.status_code == 200:
                 indexed += 1
             else:
                 failed += 1
-                print(f"Erreur indexing {product['id']}")
         except Exception as e:
             failed += 1
-            print(f"Exception: {e}")
     
-    print(f"Indexé: {indexed}, Échoué: {failed}")
+    return {"indexed": indexed, "failed": failed}
 ```
 
 ---
@@ -549,7 +557,7 @@ def index_all_products(products_list):
 # Recherche simple: 10-15s
 requests.post(..., timeout=15)
 
-# Upload image/audio: 30-60s
+# Upload image: 30-60s
 requests.post(..., timeout=60)
 ```
 
@@ -570,45 +578,22 @@ session.mount('http://', adapter)
 session.mount('https://', adapter)
 ```
 
-### Rate Limiting
-
-- **Max:** 10 requêtes/seconde par IP
-- **Dépassement:** Status 429 (Retry-After header)
-
 ---
 
 ## 📞 Support
 
 **Base URL:** `http://20.238.104.13:8000`  
-**Documentation Interactive:** `http://20.238.104.13:8000/docs`  
-**Health Check:** `http://20.238.104.13:8000/api/v1/health`
+**Documentation:** `http://20.238.104.13:8000/docs`  
+**Health:** `http://20.238.104.13:8000/api/v1/health`
 
 ---
 
 ## 🔒 Notes Sécurité
 
-- ✅ API sans authentification (réseau interne recommandé)
-- ✅ HTTPS recommandé en production
-- ✅ Validez tous les inputs côté client
-- ✅ Limitez la taille des uploads (50MB max)
-
----
-
-## 📊 Monitoring
-
-Vérifiez la santé de l'API avant chaque requête critique:
-
-```python
-def is_api_healthy():
-    try:
-        response = requests.get(
-            f"{API_URL}/api/v1/health",
-            timeout=5
-        )
-        return response.status_code == 200
-    except:
-        return False
-```
+- API sans authentification (réseau interne recommandé)
+- HTTPS recommandé en production
+- Validez tous les inputs
+- Limite upload: 50MB max
 
 ---
 
