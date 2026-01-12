@@ -1,0 +1,240 @@
+{
+  "info": {
+    "name": "Image Search API",
+    "description": "API REST pour recherche d'images sémantique avec CLIP et Qdrant",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Stats",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/health",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Vérifier la santé du service et l'état de Qdrant"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/stats",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "stats"]
+            },
+            "description": "Récupérer les statistiques de la base de données (nombre de produits indexés)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search Operations",
+      "item": [
+        {
+          "name": "Search by Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"red running shoes\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/search",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "search"]
+            },
+            "description": "Recherche sémantique par texte avec preprocessing"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Hybrid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"blue shoes\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/search-hybrid",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "search-hybrid"]
+            },
+            "description": "Recherche hybride combinant CLIP sémantique + BM25 keyword matching"
+          },
+          "response": []
+        },
+        {
+          "name": "Search by Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "<path_to_image>"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/search-image",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "search-image"]
+            },
+            "description": "Recherche par image - upload une image pour trouver les produits similaires"
+          },
+          "response": []
+        },
+        {
+          "name": "Voice Search",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "<path_to_audio>"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/voice-search",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "voice-search"]
+            },
+            "description": "Recherche par voix - upload un audio MP3/WAV, API transcrit et cherche"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Indexing Operations",
+      "item": [
+        {
+          "name": "Index Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"123\",\n  \"name\": \"Nike Red Running Shoes\",\n  \"description\": \"High-performance red running shoes with advanced cushioning\",\n  \"embedding\": [0.1, 0.2, 0.3, 0.4, 0.5],\n  \"metadata\": {\n    \"price\": 129.99,\n    \"category\": \"footwear\",\n    \"url\": \"https://example.com/products/shoe1\",\n    \"image_url\": \"https://example.com/shoe1.jpg\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/index-product",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "index-product"]
+            },
+            "description": "Indexer un produit avec embedding CLIP pré-calculé (512 dimensions)"
+          },
+          "response": []
+        },
+        {
+          "name": "Index Product with Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "product_id",
+                  "value": \"456\",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": \"Adidas Blue Sports Shoes\",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": \"Comfortable blue athletic shoes with excellent support\",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "<path_to_image>"
+                },
+                {
+                  "key": "price",
+                  "value": \"99.99\",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": \"footwear\",
+                  "type": "text"
+                },
+                {
+                  "key": "url",
+                  "value": \"https://example.com/products/shoe2\",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/index-product-with-image",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "index-product-with-image"]
+            },
+            "description": "Indexer un produit avec image - l'API calcule automatiquement l'embedding CLIP"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://20.238.104.13:8000",
+      "type": "string"
+    }
+  ]
+}
