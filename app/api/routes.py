@@ -857,3 +857,229 @@ async def voice_service_health():
             "error": str(e),
         }
 
+
+# ==================== NAMED VECTORS SEARCH (V2) ====================
+
+@router.post("/v2/search")
+async def search_v2(request: SearchRequest):
+    """
+    Search using named vectors (text_vector).
+    
+    This endpoint searches the new products_v2 collection with named vectors.
+    Products are indexed with both text and image embeddings.
+    
+    Args:
+        query: Text search query
+        limit: Max results (default 10)
+    
+    Returns:
+        Products matching the text query
+    """
+    try:
+        if not request.query or len(request.query.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        
+        # Preprocess query
+        processed_query = TextPreprocessor.preprocess_query(request.query)
+        logger.info(f"V2 Search: '{request.query}' (processed: '{processed_query}')")
+        
+        # Generate CLIP text embedding
+        embedding = embedding_service.embed_text(processed_query)
+        if not embedding:
+            raise HTTPException(status_code=500, detail="Failed to generate embedding")
+        
+        # Search with named vector
+        batch_qdrant = get_batch_qdrant_service()
+        results = batch_qdrant.search_by_text(
+            query_vector=embedding,
+            limit=request.limit,
+            score_threshold=0.3
+        )
+        
+        return {
+            "query": request.query,
+            "results": results,
+            "count": len(results),
+            "collection": "products_v2",
+            "vector_used": "text_vector"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"V2 Search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@router.post("/v2/search-image")
+async def search_image_v2(file: UploadFile = File(...), limit: int = Query(10)):
+    """
+    Search using named vectors (image_vector).
+    
+    Upload an image to find visually similar products.
+    
+    Args:
+        file: Image file (JPEG, PNG, etc.)
+        limit: Max results (default 10)
+    
+    Returns:
+        Products with similar images
+    """
+    try:
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        
+        # Validate file
+        content_type = file.content_type or ''
+        filename = file.filename or ''
+        valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+        has_valid_ext = any(filename.lower().endswith(ext) for ext in valid_extensions)
+        
+        if not content_type.startswith("image/") and not has_valid_ext:
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Read and process image
+        image_data = await file.read()
+        logger.info(f"V2 Image search: {file.filename} ({len(image_data)} bytes)")
+        
+        # Generate CLIP image embedding
+        embedding = image_embedding_service.embed_image(image_data)
+        if not embedding:
+            raise HTTPException(status_code=500, detail="Failed to process image")
+        
+        # Search with named vector
+        batch_qdrant = get_batch_qdrant_service()
+        results = batch_qdrant.search_by_image(
+            query_vector=embedding,
+            limit=limit,
+            score_threshold=0.2
+        )
+        
+        return {
+            "query_image": file.filename,
+            "results": results,
+            "count": len(results),
+            "collection": "products_v2",
+            "vector_used": "image_vector"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"V2 Image search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Image search failed: {str(e)}")
+
+
+@router.post("/v2/search-multimodal")
+async def search_multimodal(
+    text_query: Optional[str] = Form(None),
+    image_file: Optional[UploadFile] = File(None),
+    limit: int = Form(10),
+    text_weight: float = Form(0.5),
+    image_weight: float = Form(0.5)
+):
+    """
+    Multimodal search combining text AND image.
+    
+    Provide text, image, or both. Results are fused using reciprocal rank fusion.
+    
+    Args:
+        text_query: Text search query (optional)
+        image_file: Image file (optional)
+        limit: Max results (default 10)
+        text_weight: Weight for text results (0-1, default 0.5)
+        image_weight: Weight for image results (0-1, default 0.5)
+    
+    Returns:
+        Products matching text and/or image query with fused scores
+    """
+    try:
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        
+        if not text_query and not image_file:
+            raise HTTPException(
+                status_code=400, 
+                detail="Provide at least one of: text_query or image_file"
+            )
+        
+        text_embedding = None
+        image_embedding = None
+        
+        # Generate text embedding
+        if text_query and text_query.strip():
+            processed_query = TextPreprocessor.preprocess_query(text_query)
+            text_embedding = embedding_service.embed_text(processed_query)
+            logger.info(f"Multimodal: text='{text_query}'")
+        
+        # Generate image embedding
+        if image_file:
+            content_type = image_file.content_type or ''
+            filename = image_file.filename or ''
+            valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+            has_valid_ext = any(filename.lower().endswith(ext) for ext in valid_extensions)
+            
+            if content_type.startswith("image/") or has_valid_ext:
+                image_data = await image_file.read()
+                image_embedding = image_embedding_service.embed_image(image_data)
+                logger.info(f"Multimodal: image='{filename}'")
+        
+        if not text_embedding and not image_embedding:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to generate any embeddings"
+            )
+        
+        # Hybrid search
+        batch_qdrant = get_batch_qdrant_service()
+        results = batch_qdrant.search_hybrid(
+            text_vector=text_embedding,
+            image_vector=image_embedding,
+            limit=limit,
+            text_weight=text_weight,
+            image_weight=image_weight
+        )
+        
+        return {
+            "text_query": text_query,
+            "image_provided": image_file is not None,
+            "results": results,
+            "count": len(results),
+            "collection": "products_v2",
+            "weights": {
+                "text": text_weight,
+                "image": image_weight
+            },
+            "method": "multimodal_rrf"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Multimodal search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Multimodal search failed: {str(e)}")
+
+
+@router.get("/v2/stats")
+async def stats_v2():
+    """Get statistics for the V2 collection with named vectors."""
+    try:
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        batch_qdrant = get_batch_qdrant_service()
+        stats = batch_qdrant.get_collection_stats()
+        
+        return {
+            "collection": stats,
+            "vectors": {
+                "text_vector": "512d CLIP text",
+                "image_vector": "512d CLIP image"
+            },
+            "search_modes": [
+                "text (search_by_text)",
+                "image (search_by_image)", 
+                "multimodal (text + image fusion)"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"V2 Stats error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

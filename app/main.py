@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.config import get_settings
 from app.api.routes import router
+from app.api.indexation_routes import router as indexation_router
 from app.dependencies import initialize_services
 from app.utils.logger import setup_logger
 
@@ -59,6 +60,7 @@ except Exception as e:
 
 # Include routers
 app.include_router(router)
+app.include_router(indexation_router)  # New batch indexation routes
 
 @app.get("/")
 async def root():
