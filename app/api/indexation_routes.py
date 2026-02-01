@@ -287,3 +287,57 @@ async def delete_product(
     except Exception as e:
         logger.error(f"Delete error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/products",
+    summary="List all indexed products",
+    description="Retrieve all products indexed in Qdrant with pagination."
+)
+async def list_products(
+    limit: int = 50,
+    offset: int = None
+):
+    """
+    List all indexed products with their metadata.
+    
+    Use offset from response to get next page.
+    """
+    try:
+        qdrant = get_batch_qdrant_service()
+        result = qdrant.list_all_products(limit=limit, offset=offset)
+        
+        return {
+            "status": "success",
+            "data": result["products"],
+            "count": result["count"],
+            "next_offset": result["next_offset"],
+            "has_more": result["has_more"]
+        }
+        
+    except Exception as e:
+        logger.error(f"List products error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/products/{product_id}",
+    summary="Get product by ID",
+    description="Retrieve a single indexed product by its ID."
+)
+async def get_product(product_id: str):
+    """Get a single product from the index."""
+    try:
+        qdrant = get_batch_qdrant_service()
+        product = qdrant.get_product_by_id(product_id)
+        
+        if product:
+            return {"status": "success", "data": product}
+        else:
+            raise HTTPException(status_code=404, detail="Product not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get product error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

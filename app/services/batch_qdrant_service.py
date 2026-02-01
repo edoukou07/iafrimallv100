@@ -380,6 +380,125 @@ class BatchQdrantService:
         except Exception as e:
             logger.error(f"Failed to delete product {product_id}: {e}")
             return False
+    
+    def list_all_products(
+        self,
+        limit: int = 100,
+        offset: Optional[int] = None
+    ) -> Dict:
+        """
+        List all indexed products with pagination using scroll.
+        
+        Args:
+            limit: Number of products to return per page
+            offset: Offset point ID for pagination (None for first page)
+            
+        Returns:
+            Dict with products list and next_offset for pagination
+        """
+        try:
+            # Use scroll to retrieve all points
+            points, next_offset = self._client.scroll(
+                collection_name=self._collection_name,
+                limit=limit,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False  # Don't return vectors to save bandwidth
+            )
+            
+            products = []
+            for point in points:
+                payload = point.payload
+                products.append({
+                    "id": payload.get("product_id"),
+                    "qdrant_id": point.id,
+                    "title": payload.get("title"),
+                    "description": payload.get("description"),
+                    "short_description": payload.get("short_description"),
+                    "price": payload.get("price"),
+                    "sale_price": payload.get("sale_price"),
+                    "currency": payload.get("currency", "XOF"),
+                    "category_name": payload.get("category_name"),
+                    "category_id": payload.get("category_id"),
+                    "provider_name": payload.get("provider_name"),
+                    "provider_id": payload.get("provider_id"),
+                    "image_url": payload.get("image_url"),
+                    "images": payload.get("images", []),
+                    "tags": payload.get("tags", []),
+                    "attributes": payload.get("attributes", {}),
+                    "has_text_embedding": payload.get("has_text_embedding", False),
+                    "has_image_embedding": payload.get("has_image_embedding", False),
+                    "indexed_at": payload.get("indexed_at")
+                })
+            
+            return {
+                "products": products,
+                "count": len(products),
+                "next_offset": next_offset,
+                "has_more": next_offset is not None
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to list products: {e}")
+            return {
+                "products": [],
+                "count": 0,
+                "next_offset": None,
+                "has_more": False,
+                "error": str(e)
+            }
+    
+    def get_product_by_id(self, product_id: str) -> Optional[Dict]:
+        """
+        Get a single product by its ID.
+        
+        Args:
+            product_id: The product ID
+            
+        Returns:
+            Product dict or None if not found
+        """
+        try:
+            qdrant_id = hash(product_id) % (2**63)
+            
+            points = self._client.retrieve(
+                collection_name=self._collection_name,
+                ids=[qdrant_id],
+                with_payload=True,
+                with_vectors=False
+            )
+            
+            if not points:
+                return None
+            
+            point = points[0]
+            payload = point.payload
+            
+            return {
+                "id": payload.get("product_id"),
+                "qdrant_id": point.id,
+                "title": payload.get("title"),
+                "description": payload.get("description"),
+                "short_description": payload.get("short_description"),
+                "price": payload.get("price"),
+                "sale_price": payload.get("sale_price"),
+                "currency": payload.get("currency", "XOF"),
+                "category_name": payload.get("category_name"),
+                "category_id": payload.get("category_id"),
+                "provider_name": payload.get("provider_name"),
+                "provider_id": payload.get("provider_id"),
+                "image_url": payload.get("image_url"),
+                "images": payload.get("images", []),
+                "tags": payload.get("tags", []),
+                "attributes": payload.get("attributes", {}),
+                "has_text_embedding": payload.get("has_text_embedding", False),
+                "has_image_embedding": payload.get("has_image_embedding", False),
+                "indexed_at": payload.get("indexed_at")
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get product {product_id}: {e}")
+            return None
 
 
 # Singleton
