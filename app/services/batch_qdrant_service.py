@@ -459,11 +459,20 @@ class BatchQdrantService:
             Product dict or None if not found
         """
         try:
-            qdrant_id = hash(product_id) % (2**63)
+            # Search by product_id in payload using scroll with filter
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
             
-            points = self._client.retrieve(
+            points, _ = self._client.scroll(
                 collection_name=self._collection_name,
-                ids=[qdrant_id],
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="product_id",
+                            match=MatchValue(value=product_id)
+                        )
+                    ]
+                ),
+                limit=1,
                 with_payload=True,
                 with_vectors=False
             )
