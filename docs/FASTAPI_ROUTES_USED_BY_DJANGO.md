@@ -15,14 +15,14 @@ Django (iafrimall-django)
     ↓
 requests.post/get()
     ↓
-FastAPI Backend (52.143.186.136:8000)
+FastAPI Backend (20.238.104.13:8000)
     ↓
 /api/v1/*
 ```
 
 Ce document liste **UNIQUEMENT les routes FastAPI** réellement appelées par Django.
 
-**Base URL:** `http://52.143.186.136:8000/api/v1`
+**Base URL:** `http://20.238.104.13:8000/api/v1`
 
 ---
 
@@ -579,7 +579,7 @@ Jusqu'à status = 'completed'
 
 ```python
 # API Configuration
-IMAGE_SEARCH_API_URL = "http://52.143.186.136:8000"  # ou localhost:8000 en dev
+IMAGE_SEARCH_API_URL = "http://20.238.104.13:8000"  # ou localhost:8000 en dev
 IMAGE_SEARCH_API_TIMEOUT = 60  # secondes
 ```
 
@@ -625,20 +625,20 @@ api_client.delete_product("9223372036854775807")
 
 ```bash
 # Recherche texte
-curl -X POST "http://52.143.186.136:8000/api/v1/search" \
+curl -X POST "http://20.238.104.13:8000/api/v1/search" \
   -H "Content-Type: application/json" \
   -d '{"query":"blue shoes","limit":10}'
 
 # Recherche vocale
-curl -X POST "http://52.143.186.136:8000/api/v1/voice-search" \
+curl -X POST "http://20.238.104.13:8000/api/v1/voice-search" \
   -F "audio_file=@query.wav" \
   -F "language=en"
 
 # Statut job
-curl "http://52.143.186.136:8000/api/v1/queue/status/job_abc123"
+curl "http://20.238.104.13:8000/api/v1/queue/status/job_abc123"
 
 # Infos Whisper
-curl "http://52.143.186.136:8000/api/v1/voice/model-info"
+curl "http://20.238.104.13:8000/api/v1/voice/model-info"
 ```
 
 ---
@@ -647,7 +647,7 @@ curl "http://52.143.186.136:8000/api/v1/voice/model-info"
 
 | Erreur | Cause | Solution |
 |--------|-------|----------|
-| Connection refused | FastAPI offline | Vérifier `http://52.143.186.136:8000` |
+| Connection refused | FastAPI offline | Vérifier `http://20.238.104.13:8000` |
 | 404 Not Found | Endpoint inexistant | Vérifier chemin `/api/v1/` |
 | 400 Bad Request | Paramètres invalides | Valider JSON/FormData |
 | 503 Service Unavailable | FastAPI surchargée | Réessayer avec backoff |

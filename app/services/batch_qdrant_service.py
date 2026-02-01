@@ -58,7 +58,7 @@ class BatchQdrantService:
     def _initialize_client(self):
         """Initialize Qdrant client with named vectors collection."""
         try:
-            qdrant_host = os.getenv("QDRANT_HOST", "52.143.186.136")
+            qdrant_host = os.getenv("QDRANT_HOST", "20.238.104.13")
             qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
             
             logger.info(f"Initializing Qdrant (named vectors) at {qdrant_host}:{qdrant_port}")

@@ -61,7 +61,7 @@ L'API offre **4 types de recherche** pour trouver des produits:
     │
 ┌───▼──────────────────────────────────┐
 │   Qdrant Vector Database             │
-│   (Azure 52.143.186.136:6333)       │
+│   (Azure 20.238.104.13:6333)        │
 │   - Collections d'embeddings         │
 │   - Recherche par similarité         │
 └──────────────────────────────────────┘
@@ -103,7 +103,7 @@ L'API offre **4 types de recherche** pour trouver des produits:
 ```json
 {
   "status": "unhealthy",
-  "error": "Connection refused: Cannot reach Qdrant at 52.143.186.136:6333"
+  "error": "Connection refused: Cannot reach Qdrant at 20.238.104.13:6333"
 }
 ```
 
