@@ -11,13 +11,14 @@
 1. [Recherche Texte](#1-recherche-texte)
 2. [Recherche Image](#2-recherche-image)
 3. [Recherche Multimodale](#3-recherche-multimodale)
-4. [Indexation Batch (Async)](#4-indexation-batch-async)
-5. [Indexation Batch (Sync)](#5-indexation-batch-sync)
-6. [Liste des Produits Indexés](#6-liste-des-produits-indexés)
-7. [Détails d'un Produit](#7-détails-dun-produit)
-8. [Statistiques](#8-statistiques)
-9. [Health Check](#9-health-check)
-10. [Structure des Données](#10-structure-des-données)
+4. [Recherche Vocale](#4-recherche-vocale)
+5. [Indexation Batch (Async)](#5-indexation-batch-async)
+6. [Indexation Batch (Sync)](#6-indexation-batch-sync)
+7. [Liste des Produits Indexés](#7-liste-des-produits-indexés)
+8. [Détails d'un Produit](#8-détails-dun-produit)
+9. [Statistiques](#9-statistiques)
+10. [Health Check](#10-health-check)
+11. [Structure des Données](#11-structure-des-données)
 
 ---
 
@@ -207,7 +208,125 @@ const response = await fetch('http://20.238.104.13:8000/api/v1/v2/search-multimo
 
 ---
 
-## 4. Indexation Batch (Async)
+## 4. Recherche Vocale
+
+🎤 Recherche par voix : transcription audio → recherche sémantique → résultats.
+
+### Endpoint
+```
+POST /api/v1/v2/search-voice
+```
+
+### Headers
+```
+Content-Type: multipart/form-data
+```
+
+### Body (FormData)
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `audio_file` | File | ✅ | Fichier audio (MP3, WAV, M4A, FLAC, OGG, WebM) |
+| `language` | string | ❌ | Code langue (ex: 'fr', 'en'). Auto-détecté si non fourni |
+| `limit` | integer | ❌ | Nombre de résultats (défaut: 10, max: 100) |
+
+### Réponse (200 OK)
+```json
+{
+  "query": "je cherche une robe rouge",
+  "transcription": "je cherche une robe rouge",
+  "language": "fr",
+  "confidence": 0.95,
+  "results": [
+    {
+      "id": "prod-123",
+      "score": 0.87,
+      "metadata": {
+        "title": "Robe de Soirée Rouge",
+        "description": "Magnifique robe rouge pour occasions spéciales",
+        "price": 25000,
+        "sale_price": 20000,
+        "currency": "XOF",
+        "category_name": "Robes",
+        "provider_name": "Fashion Store",
+        "image_url": "https://example.com/image.jpg",
+        "tags": ["robe", "rouge", "soirée"],
+        "has_text_embedding": true,
+        "has_image_embedding": true
+      }
+    }
+  ],
+  "count": 10,
+  "collection": "products_v2",
+  "vector_used": "text_vector",
+  "search_type": "voice"
+}
+```
+
+### Exemple JavaScript
+```javascript
+// Avec un fichier audio depuis un input
+const formData = new FormData();
+formData.append('audio_file', audioFile);  // File object
+formData.append('language', 'fr');         // Optionnel
+formData.append('limit', '10');
+
+const response = await fetch('http://20.238.104.13:8000/api/v1/v2/search-voice', {
+  method: 'POST',
+  body: formData
+});
+const data = await response.json();
+console.log('Transcription:', data.transcription);
+console.log('Résultats:', data.results);
+```
+
+### Exemple avec enregistrement micro (Web API)
+```javascript
+// Enregistrer depuis le micro
+let mediaRecorder;
+let audioChunks = [];
+
+async function startRecording() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+  
+  mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+  
+  mediaRecorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    audioChunks = [];
+    
+    // Envoyer à l'API
+    const formData = new FormData();
+    formData.append('audio_file', audioBlob, 'recording.webm');
+    formData.append('limit', '10');
+    
+    const response = await fetch('http://20.238.104.13:8000/api/v1/v2/search-voice', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    console.log('Transcription:', data.transcription);
+    console.log('Produits trouvés:', data.results);
+  };
+  
+  mediaRecorder.start();
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+}
+```
+
+### Formats Audio Supportés
+- MP3, WAV, M4A, FLAC, OGG, WebM, AAC, WMA
+
+### Langues Supportées
+- 99+ langues (auto-détection par défaut)
+- Principales : `fr`, `en`, `es`, `de`, `it`, `pt`, `ar`, `zh`, `ja`, `ko`
+
+---
+
+## 5. Indexation Batch (Async)
 
 Indexation asynchrone de plusieurs produits. Les résultats sont envoyés via callback.
 
@@ -300,7 +419,7 @@ Authorization: Bearer <API_KEY>  (optionnel)
 
 ---
 
-## 5. Indexation Batch (Sync)
+## 6. Indexation Batch (Sync)
 
 Indexation synchrone (bloquante) - **pour tests uniquement** (max 50 produits).
 
@@ -317,7 +436,7 @@ Retourne directement le callback (même structure).
 
 ---
 
-## 6. Liste des Produits Indexés
+## 7. Liste des Produits Indexés
 
 Récupérer tous les produits indexés avec pagination.
 
@@ -379,7 +498,7 @@ if (data1.has_more) {
 
 ---
 
-## 7. Détails d'un Produit
+## 8. Détails d'un Produit
 
 Récupérer un produit spécifique par son ID.
 
@@ -418,7 +537,7 @@ GET /indexation/products/{product_id}
 
 ---
 
-## 8. Statistiques
+## 9. Statistiques
 
 Obtenir les statistiques de la collection Qdrant.
 
@@ -445,7 +564,7 @@ GET /api/v1/v2/stats
 
 ---
 
-## 9. Health Check
+## 10. Health Check
 
 Vérifier l'état du service.
 
@@ -472,7 +591,7 @@ GET /indexation/health
 
 ---
 
-## 10. Structure des Données
+## 11. Structure des Données
 
 ### ProductToIndex (pour indexation)
 

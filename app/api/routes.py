@@ -1060,6 +1060,124 @@ async def search_multimodal(
         raise HTTPException(status_code=500, detail=f"Multimodal search failed: {str(e)}")
 
 
+@router.post("/v2/search-voice")
+async def search_voice_v2(
+    audio_file: UploadFile = File(..., description="Audio file (MP3, WAV, M4A, FLAC, OGG, etc.)"),
+    language: Optional[str] = Query(None, description="Language code (e.g., 'en', 'fr'). Auto-detected if None"),
+    limit: int = Query(10, ge=1, le=100, description="Number of results"),
+):
+    """
+    🎤 Voice Search V2: Transcribe audio → Search products_v2 → Return results.
+    
+    This endpoint combines:
+    1. **Whisper Transcription**: Converts audio to text with high accuracy
+    2. **V2 Named Vector Search**: Searches products_v2 collection using text_vector
+    
+    Supported audio formats:
+    - MP3, WAV, M4A, FLAC, OGG, WebM, etc.
+    
+    Args:
+        audio_file: Audio file to transcribe and search
+        language: Language code (e.g., 'fr', 'en'). Auto-detected if None
+        limit: Max number of results (default 10, max 100)
+    
+    Returns:
+        {
+            "transcription": "texte transcrit",
+            "language": "fr",
+            "confidence": 0.95,
+            "results": [...],
+            "count": 10,
+            "collection": "products_v2",
+            "vector_used": "text_vector",
+            "search_type": "voice"
+        }
+    
+    Example:
+        - User says: "Je cherche une robe rouge"
+        - Transcription: "je cherche une robe rouge"
+        - Search: Returns red dresses from products_v2
+    """
+    try:
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        import os
+        
+        # Get voice service
+        voice_service = get_voice_service(model_size="base")
+        
+        # Log request
+        logger.info(f"V2 Voice search: filename={audio_file.filename}, content_type={audio_file.content_type}")
+        
+        # Save audio file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp_file:
+            content = await audio_file.read()
+            logger.info(f"Audio content size: {len(content)} bytes")
+            tmp_file.write(content)
+            tmp_audio_path = tmp_file.name
+        
+        try:
+            # Transcribe audio using Whisper
+            transcription_result = voice_service.transcribe(
+                tmp_audio_path,
+                language=language,
+            )
+            
+            transcript_text = transcription_result["text"]
+            detected_language = transcription_result["language"]
+            confidence = transcription_result.get("confidence", 0.95)
+            
+            logger.info(f"✓ Transcription: '{transcript_text}' (lang={detected_language}, conf={confidence})")
+            
+            # Preprocess transcribed text for better search
+            processed_text = TextPreprocessor.preprocess_query(transcript_text)
+            
+            # Generate CLIP text embedding
+            embedding = embedding_service.embed_text(processed_text)
+            if not embedding:
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Failed to generate embedding from transcribed text"
+                )
+            
+            # Search products_v2 with named vector (text_vector)
+            batch_qdrant = get_batch_qdrant_service()
+            results = batch_qdrant.search_by_text(
+                query_vector=embedding,
+                limit=limit,
+                score_threshold=0.3
+            )
+            
+            logger.info(f"V2 Voice search: {len(results)} products found")
+            
+            return {
+                "query": transcript_text,  # Same as /v2/search for consistency
+                "transcription": transcript_text,
+                "language": detected_language,
+                "confidence": float(confidence),
+                "results": results,
+                "count": len(results),
+                "collection": "products_v2",
+                "vector_used": "text_vector",
+                "search_type": "voice"
+            }
+            
+        finally:
+            # Clean up temp file
+            try:
+                os.remove(tmp_audio_path)
+            except:
+                pass
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"V2 Voice search error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Voice search failed: {str(e)}"
+        )
+
+
 @router.get("/v2/stats")
 async def stats_v2():
     """Get statistics for the V2 collection with named vectors."""
