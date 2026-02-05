@@ -9,16 +9,17 @@
 ## 📋 Table des Matières
 
 1. [Recherche Texte](#1-recherche-texte)
-2. [Recherche Image](#2-recherche-image)
-3. [Recherche Multimodale](#3-recherche-multimodale)
-4. [Recherche Vocale](#4-recherche-vocale)
-5. [Indexation Batch (Async)](#5-indexation-batch-async)
-6. [Indexation Batch (Sync)](#6-indexation-batch-sync)
-7. [Liste des Produits Indexés](#7-liste-des-produits-indexés)
-8. [Détails d'un Produit](#8-détails-dun-produit)
-9. [Statistiques](#9-statistiques)
-10. [Health Check](#10-health-check)
-11. [Structure des Données](#11-structure-des-données)
+2. [Recherche Image (Upload)](#2-recherche-image-upload)
+3. [Recherche Image (URL)](#3-recherche-image-url)
+4. [Recherche Multimodale](#4-recherche-multimodale)
+5. [Recherche Vocale](#5-recherche-vocale)
+6. [Indexation Batch (Async)](#6-indexation-batch-async)
+7. [Indexation Batch (Sync)](#7-indexation-batch-sync)
+8. [Liste des Produits Indexés](#8-liste-des-produits-indexés)
+9. [Détails d'un Produit](#9-détails-dun-produit)
+10. [Statistiques](#10-statistiques)
+11. [Health Check](#11-health-check)
+12. [Structure des Données](#12-structure-des-données)
 
 ---
 
@@ -93,9 +94,9 @@ console.log(data.results);
 
 ---
 
-## 2. Recherche Image
+## 2. Recherche Image (Upload)
 
-Recherche visuelle par image utilisant le vecteur `image_vector` (512 dimensions CLIP).
+Recherche visuelle par image uploadée utilisant le vecteur `image_vector` (512 dimensions CLIP).
 
 ### Endpoint
 ```
@@ -153,7 +154,88 @@ const data = await response.json();
 
 ---
 
-## 3. Recherche Multimodale
+## 3. Recherche Image (URL)
+
+🔗 Recherche visuelle par URL d'image - Plus simple, pas besoin d'upload !
+
+### Endpoint
+```
+POST /api/v1/v2/search-image-url
+```
+
+### Headers
+```
+Content-Type: application/json
+```
+
+### Body (JSON)
+```json
+{
+  "image_url": "https://example.com/robe-rouge.jpg",
+  "limit": 10
+}
+```
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `image_url` | string | ✅ | URL de l'image à rechercher |
+| `limit` | integer | ❌ | Nombre de résultats (défaut: 10, max: 100) |
+
+### Réponse (200 OK)
+```json
+{
+  "query_image_url": "https://example.com/robe-rouge.jpg",
+  "results": [
+    {
+      "id": "prod-456",
+      "score": 0.92,
+      "metadata": {
+        "title": "Robe Rouge Élégante",
+        "description": "Belle robe rouge pour soirée",
+        "price": 45000,
+        "sale_price": 39000,
+        "currency": "XOF",
+        "category_name": "Robes",
+        "provider_name": "Fashion Store",
+        "image_url": "https://example.com/similar-dress.jpg",
+        "tags": ["robe", "rouge", "soirée"],
+        "has_text_embedding": true,
+        "has_image_embedding": true
+      }
+    }
+  ],
+  "count": 10,
+  "collection": "products_v2",
+  "vector_used": "image_vector"
+}
+```
+
+### Exemple JavaScript
+```javascript
+const response = await fetch('http://20.238.104.13:8000/api/v1/v2/search-image-url', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    image_url: 'https://example.com/robe-rouge.jpg',
+    limit: 10
+  })
+});
+const data = await response.json();
+console.log(data.results);
+```
+
+### Cas d'utilisation
+- Recherche depuis une image partagée sur les réseaux sociaux
+- "Trouver des produits similaires" depuis une image externe
+- Intégration plus simple (pas de gestion d'upload côté frontend)
+
+### Formats d'image supportés
+- JPEG, PNG, WebP, GIF, BMP
+- L'URL doit pointer directement vers l'image
+
+---
+
+## 4. Recherche Multimodale
 
 Recherche combinant texte ET image avec pondération ajustable.
 
@@ -208,7 +290,7 @@ const response = await fetch('http://20.238.104.13:8000/api/v1/v2/search-multimo
 
 ---
 
-## 4. Recherche Vocale
+## 5. Recherche Vocale
 
 🎤 Recherche par voix : transcription audio → recherche sémantique → résultats.
 
@@ -326,7 +408,7 @@ function stopRecording() {
 
 ---
 
-## 5. Indexation Batch (Async)
+## 6. Indexation Batch (Async)
 
 Indexation asynchrone de plusieurs produits. Les résultats sont envoyés via callback.
 
@@ -419,7 +501,7 @@ Authorization: Bearer <API_KEY>  (optionnel)
 
 ---
 
-## 6. Indexation Batch (Sync)
+## 7. Indexation Batch (Sync)
 
 Indexation synchrone (bloquante) - **pour tests uniquement** (max 50 produits).
 
@@ -436,7 +518,7 @@ Retourne directement le callback (même structure).
 
 ---
 
-## 7. Liste des Produits Indexés
+## 8. Liste des Produits Indexés
 
 Récupérer tous les produits indexés avec pagination.
 
@@ -498,7 +580,7 @@ if (data1.has_more) {
 
 ---
 
-## 8. Détails d'un Produit
+## 9. Détails d'un Produit
 
 Récupérer un produit spécifique par son ID.
 
@@ -537,7 +619,7 @@ GET /indexation/products/{product_id}
 
 ---
 
-## 9. Statistiques
+## 10. Statistiques
 
 Obtenir les statistiques de la collection Qdrant.
 
@@ -564,7 +646,7 @@ GET /api/v1/v2/stats
 
 ---
 
-## 10. Health Check
+## 11. Health Check
 
 Vérifier l'état du service.
 
@@ -591,7 +673,7 @@ GET /indexation/health
 
 ---
 
-## 11. Structure des Données
+## 12. Structure des Données
 
 ### ProductToIndex (pour indexation)
 

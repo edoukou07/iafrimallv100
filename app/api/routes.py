@@ -11,9 +11,10 @@ import logging
 import uuid
 import json
 import tempfile
+import httpx
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from app.services.embedding_service import EmbeddingService
 from app.services.image_embedding import get_image_embedding_service
 from app.services.integrated_qdrant import get_qdrant_service
@@ -969,6 +970,101 @@ async def search_image_v2(file: UploadFile = File(...), limit: int = Query(10)):
     except Exception as e:
         logger.error(f"V2 Image search error: {e}")
         raise HTTPException(status_code=500, detail=f"Image search failed: {str(e)}")
+
+
+class ImageUrlSearchRequest(BaseModel):
+    """Request model for image URL search."""
+    image_url: str
+    limit: int = 10
+
+
+@router.post("/v2/search-image-url")
+async def search_image_url_v2(request: ImageUrlSearchRequest):
+    """
+    🔗 Search using image URL - Find visually similar products.
+    
+    This endpoint downloads an image from a URL and searches for similar products
+    using the image_vector in products_v2 collection.
+    
+    Args:
+        image_url: URL of the image to search (JPEG, PNG, WebP, etc.)
+        limit: Max number of results (default 10, max 100)
+    
+    Returns:
+        Products with similar images
+    
+    Example:
+        {
+            "image_url": "https://example.com/robe-rouge.jpg",
+            "limit": 10
+        }
+    """
+    try:
+        from app.services.batch_qdrant_service import get_batch_qdrant_service
+        
+        # Validate URL
+        if not request.image_url or not request.image_url.strip():
+            raise HTTPException(status_code=400, detail="image_url is required")
+        
+        image_url = request.image_url.strip()
+        logger.info(f"V2 Image URL search: {image_url}")
+        
+        # Download image from URL
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(image_url, follow_redirects=True)
+                response.raise_for_status()
+                
+                # Validate content type
+                content_type = response.headers.get("content-type", "")
+                if not content_type.startswith("image/"):
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"URL does not point to an image (content-type: {content_type})"
+                    )
+                
+                image_data = response.content
+                logger.info(f"Downloaded image: {len(image_data)} bytes, type: {content_type}")
+                
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Failed to download image: HTTP {e.response.status_code}"
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Failed to download image: {str(e)}"
+            )
+        
+        # Generate CLIP image embedding
+        embedding = image_embedding_service.embed_image(image_data)
+        if not embedding:
+            raise HTTPException(status_code=500, detail="Failed to process image")
+        
+        # Search with named vector
+        batch_qdrant = get_batch_qdrant_service()
+        results = batch_qdrant.search_by_image(
+            query_vector=embedding,
+            limit=request.limit,
+            score_threshold=0.2
+        )
+        
+        logger.info(f"V2 Image URL search: {len(results)} products found")
+        
+        return {
+            "query_image_url": image_url,
+            "results": results,
+            "count": len(results),
+            "collection": "products_v2",
+            "vector_used": "image_vector"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"V2 Image URL search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Image URL search failed: {str(e)}")
 
 
 @router.post("/v2/search-multimodal")
