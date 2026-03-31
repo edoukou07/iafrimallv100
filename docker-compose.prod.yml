@@ -1,0 +1,131 @@
+version: '3.9'
+
+services:
+  # ===== REDIS - Production Configuration =====
+  redis:
+    image: redis:7-alpine
+    container_name: image-search-redis-prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server 
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - image-search-net-prod
+    restart: always
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+
+  # ===== QDRANT - Production Configuration =====
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: image-search-qdrant-prod
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+      - ./qdrant_config.yaml:/qdrant/config/config.yaml
+    environment:
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - image-search-net-prod
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  # ===== FastAPI Application - Production =====
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: image-search-api-prod
+    ports:
+      - "8000:8000"
+    environment:
+      # Load from .env.prod
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_KEY=${API_KEY}
+      - INDEXATION_API_KEY=${INDEXATION_API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_SSL=${REDIS_SSL}
+      - MODEL_NAME=${MODEL_NAME}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./app:/app/app
+      - qdrant_data:/app/data/qdrant
+      - api_logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - image-search-net-prod
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-H", "Authorization: Bearer ${API_KEY}", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+volumes:
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  api_logs:
+    driver: local
+
+networks:
+  image-search-net-prod:
+    driver: bridge

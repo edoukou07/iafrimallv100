@@ -1,0 +1,96 @@
+# ===== PRODUCTION SECURITY - DO NOT COMMIT =====
+
+# Environment Files (contains secrets!)
+.env
+.env.production
+.env.prod
+.env.*.local
+*.env
+
+# Secrets and Keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+~/.ssh/config
+
+# Database Backups
+*.sql
+*.sql.gz
+*.dump
+backup/
+backups/
+
+# Log Files
+logs/
+*.log
+*.log.*
+
+# API Keys and Secrets
+secrets/
+*secret*
+*api_key*
+*api-key*
+*password*
+*passwd*
+
+# Cloud Configuration
+.aws/credentials
+.azure/config
+gcp-key.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Docker
+*.dockerfile
+docker-compose.local.yml
+
+# Sensitive Data
+*credentials*
+*token*
+*jwt*
+*.pem
+*.key
+
+# Do not ignore production files
+!.env.prod
+!.env.production
+!.env.example
+!docker-compose.prod.yml
+!
