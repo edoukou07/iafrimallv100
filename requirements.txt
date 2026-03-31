@@ -15,6 +15,7 @@
 # ✅ Hybrid search (image + text filters)
 # ✅ Auto-scaling on Azure Container Apps
 # ✅ Single container = no external services
+# ✅ Security hardening (CORS, JWT, SSRF prevention, Rate limiting)
 #
 # Performance: 150-300ms end-to-end latency
 # Size: ~500MB (compressed: ~150-200MB)
@@ -60,3 +61,14 @@ rank-bm25==0.2.2
 # Voice & Audio Processing
 openai-whisper==20231117
 pydub==0.25.1
+
+# ===== SECURITY HARDENING =====
+# JWT Token authentication
+python-jose==3.3.0
+cryptography==41.0.7
+
+# SSL/TLS support
+pyopenssl==23.3.0
+
+# Rate limiting & security middleware
+slowapi==0.1.9
